@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPAV 2026 — Capacidad Multi-Planta</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{
+  --bg:#07100f;--bg2:#0b1a1d;--bg3:#102028;--bg4:#162c31;
+  --border:rgba(0,101,127,0.18);--border2:rgba(0,101,127,0.30);
+  --text:#e8f0f2;--text2:#8fadb4;--text3:#5a8590;
+  --amber:#FFAC00;--amber2:#FFB800;--amber-dim:rgba(255,172,0,0.13);
+  --amber-glow:rgba(255,172,0,0.25);
+  --teal:#00657F;--teal-dim:rgba(0,101,127,0.15);
+  --rose:#C0392B;--rose-dim:rgba(192,57,43,0.14);
+  --green:#AACF00;--green-dim:rgba(170,207,0,0.12);
+  --purple:#00657F;--purple-dim:rgba(0,101,127,0.15);
+  --orange:#FFAC00;
+  --brand-dark:#004853;
+  --r:12px;--rl:18px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px}
+.mono{font-family:'JetBrains Mono',monospace}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:#004853;border-radius:99px}
+
+/* HEADER */
+header{background:#004853;border-bottom:1px solid rgba(0,101,127,0.4);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:#00657F;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:800;flex-shrink:0}
+.logo-name{font-weight:700;font-size:14px;letter-spacing:-.3px;color:#ECEBE0}
+.logo-sub{font-size:10px;color:rgba(236,235,224,0.6);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.hbtns{display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;cursor:pointer;border:none;transition:all .15s}
+.btn-ghost{background:rgba(255,255,255,0.08);color:#ECEBE0;border:1px solid rgba(236,235,224,0.25)}
+.btn-ghost:hover{background:rgba(255,255,255,0.15);color:#fff}
+.btn-amber{background:#00657F;color:#fff}
+.btn-amber:hover{background:#004853}
+.btn:active{transform:scale(.96)}
+
+/* MODULE TABS */
+.mod-bar{background:#00657F;border-bottom:1px solid rgba(0,72,83,0.5);display:flex;overflow-x:auto;padding:0 24px}
+.mod-tab{padding:14px 20px;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,0.6);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.mod-tab:hover{color:rgba(255,255,255,0.9)}
+.mod-tab.active{color:#AACF00;border-bottom-color:#AACF00}
+.mod-tab i{font-size:11px}
+
+/* PLANT BAR */
+.plant-bar{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;padding:0 24px}
+.plant-tab{padding:11px 18px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.plant-tab:hover{color:var(--text2)}
+.plant-tab.active{color:#FFAC00;border-bottom-color:#FFAC00}
+.pdot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.dp-all{background:#FFAC00}.dp-pei{background:#00657F}.dp-buc{background:#FFAC00}.dp-cal{background:#AACF00}.dp-copa{background:#004853}
+
+/* PAGE */
+.page{display:none;padding:20px 24px;max-width:1600px;margin:0 auto}
+.page.active{display:block}
+
+/* SHARED LAYOUT */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:1200px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.kpi-card:hover{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.7px;color:var(--text3);margin-bottom:8px}
+.kpi-value{font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;line-height:1}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:6px;font-weight:500}
+.kpi-icon{position:absolute;right:14px;top:14px;font-size:20px;opacity:.15}
+.cgrid{display:grid;grid-template-columns:280px 1fr;gap:18px;align-items:start}
+@media(max-width:1024px){.cgrid{grid-template-columns:1fr}}
+.side{display:flex;flex-direction:column;gap:14px;position:sticky;top:80px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-weight:700;font-size:12px;display:flex;align-items:center;gap:7px}
+.card-title i{color:#00657F;font-size:11px}
+.badge{background:var(--bg3);color:var(--text2);font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;font-family:'JetBrains Mono',monospace}
+.cbody{padding:14px 16px;display:flex;flex-direction:column;gap:13px}
+.prow{display:flex;flex-direction:column;gap:6px}
+.plabel{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:500;color:var(--text2)}
+.pval{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:#FFAC00;background:rgba(255,172,0,0.13);padding:1px 7px;border-radius:5px;min-width:54px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:var(--bg4);border-radius:99px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:#00657F;border-radius:50%;cursor:pointer;border:2px solid var(--bg2);box-shadow:0 0 6px rgba(0,101,127,.4)}
+.phint{font-size:10px;color:var(--text3)}
+.nwrap{position:relative}
+.nwrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:10px}
+input[type=number]{width:100%;padding:8px 10px 8px 28px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;outline:none;transition:border-color .15s;-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=number]:focus{border-color:#00657F}
+.divider{border:none;border-top:1px solid var(--border)}
+.zone-wrap{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px}
+.zpill{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);transition:all .12s}
+.zpill:hover{color:var(--text);border-color:var(--border2)}
+.zpill.active{background:#00657F;color:#fff;border-color:#00657F}
+.wbtns{display:flex;gap:5px}
+.wbtn{flex:1;padding:5px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);transition:all .12s;font-family:'JetBrains Mono',monospace}
+.wbtn:hover{color:var(--text);border-color:var(--border2)}
+.wbtn.active{background:rgba(0,101,127,0.18);color:#00657F;border-color:#00657F}
+
+/* TABLE */
+.twrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.thdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.tcon{overflow:auto;max-height:440px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead{position:sticky;top:0;z-index:5}
+thead tr{background:var(--bg3)}
+th{padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);white-space:nowrap;border-bottom:1px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+tbody tr:hover{background:rgba(255,255,255,.02)}
+tbody tr.bn{background:rgba(244,63,94,.04)}
+tbody tr:last-child td{border-bottom:none}
+.tag{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600}
+.tzone{background:var(--bg4);color:var(--text2)}
+.tok{background:var(--green-dim);color:var(--green)}
+.tbn{background:var(--rose-dim);color:var(--rose)}
+.tpei{background:rgba(0,101,127,.18);color:#4dc8e8}
+.tbuc{background:rgba(255,172,0,.15);color:#FFAC00}
+.tcal{background:rgba(170,207,0,.15);color:#AACF00}
+.tcopa{background:rgba(0,72,83,.25);color:#00a8a0}
+.inum{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;border-radius:6px;padding:3px 7px;width:64px;text-align:center;outline:none;transition:border-color .12s}
+.inum:focus{border-color:#00657F}
+
+/* TOOLBAR */
+.tbar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.swrap{position:relative;flex:1;min-width:160px;max-width:280px}
+.swrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:10px}
+.sinput{width:100%;padding:7px 10px 7px 28px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;font-size:12px;outline:none;transition:border-color .15s}
+.sinput:focus{border-color:#00657F}
+.tsep{width:1px;height:24px;background:var(--border);flex-shrink:0}
+.vtog{display:flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:2px}
+.vbtn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--text3);transition:all .12s}
+.vbtn.active{background:#00657F;color:#fff}
+select.fsel{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none;cursor:pointer;accent-color:#00657F}
+
+/* CHARTS */
+.cgrid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media(max-width:900px){.cgrid2{grid-template-columns:1fr}}
+.ccrd{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.ccrd-full{grid-column:1/-1}
+.ctitle{font-size:12px;font-weight:700;display:flex;align-items:center;gap:7px}
+.ctitle i{color:#00657F;font-size:11px}
+.cwrap{position:relative;height:220px}
+.cleg{display:flex;flex-wrap:wrap;gap:10px}
+.cleg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)}
+.cleg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* MATRIX (Programación) */
+.matrix-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--r);margin-top:14px}
+.matrix-wrap table th{min-width:120px;text-align:center}
+.matrix-wrap table td{text-align:center;min-width:120px}
+.mcell{padding:4px 6px}
+.mcell-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700}
+.mcell-sub{font-size:9px;color:var(--text3);margin-top:2px}
+.mcell-ok{background:rgba(34,197,94,.08)}
+.mcell-warn{background:rgba(245,158,11,.08)}
+.mcell-bad{background:rgba(244,63,94,.08)}
+.mcell-na{color:var(--text3);font-style:italic;font-size:11px}
+.mcell-ok .mcell-val{color:var(--green)}
+.mcell-warn .mcell-val{color:var(--amber)}
+.mcell-bad .mcell-val{color:var(--rose)}
+
+/* REFERENCE VIEW */
+.ref-selector{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;outline:none;width:100%;cursor:pointer;transition:border-color .15s}
+.ref-selector:focus{border-color:#00657F}
+.ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.ref-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);font-weight:600}
+.ref-desc{font-size:16px;font-weight:700}
+.ref-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.flow-wrap{display:flex;align-items:center;gap:8px;overflow-x:auto;padding:16px 0;margin-bottom:14px}
+.flow-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0}
+.flow-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;min-width:110px;transition:border-color .2s}
+.flow-box.highlight{border-color:#00657F;background:rgba(0,101,127,0.15)}
+.flow-box-name{font-size:11px;font-weight:700}
+.flow-box-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-top:2px}
+.flow-arrow{color:var(--text3);font-size:16px;flex-shrink:0}
+.flow-opt{font-size:9px;color:#FFAC00;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+
+/* PLANIFICADOR */
+.eff-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:900px){.eff-grid{grid-template-columns:1fr 1fr}}
+.eff-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.eff-plant{font-size:12px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.eff-area-row{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.eff-area-label{font-size:10px;font-weight:600;color:var(--text2);display:flex;justify-content:space-between}
+.cunas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-top:6px}
+.cuna-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;text-align:center}
+.cuna-num{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:#FFAC00}
+.cuna-label{font-size:9px;color:var(--text3);margin-top:2px}
+.plan-result{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-top:14px}
+.plan-flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;margin:16px 0}
+.plan-step{display:flex;flex-direction:column;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-width:140px;flex-shrink:0}
+.plan-step-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;color:var(--text2)}
+.plan-step-time{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:#FFAC00}
+.plan-step-unit{font-size:10px;color:var(--text3);margin-top:2px}
+.plan-step.bn{border-color:var(--rose);background:var(--rose-dim)}
+.plan-step.bn .plan-step-time{color:var(--rose)}
+.plan-arrow{display:flex;align-items:center;padding:0 4px;color:var(--text3);font-size:18px;flex-shrink:0}
+.plan-total{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.plan-kpi{display:flex;flex-direction:column;gap:3px}
+.plan-kpi-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700}
+.plan-kpi-label{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+
+/* EMPTY */
+.empty{padding:40px;text-align:center;color:var(--text3)}
+.empty i{font-size:28px;margin-bottom:10px;opacity:.3;display:block}
+
+/* FOOTER */
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--text3);font-weight:500;margin-top:24px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">B</div>
+    <div>
+      <div class="logo-name">Grupo BIOS — OPAV 2026</div>
+      <div class="logo-sub">Plataforma de Capacidad y Programación</div>
+    </div>
+  </div>
+  <div class="hbtns">
+    <button class="btn btn-ghost" id="btnReset"><i class="fa-solid fa-rotate-left"></i> Restablecer</button>
+    <button class="btn btn-ghost" id="btnExport"><i class="fa-solid fa-file-csv"></i> CSV</button>
+    <button class="btn btn-amber" id="btnExportFull"><i class="fa-solid fa-download"></i> Exportar Todo</button>
+  </div>
+</header>
+
+<!-- MODULE TABS -->
+<nav class="mod-bar">
+  <button class="mod-tab active" data-mod="capacidad"><i class="fa-solid fa-gauge-high"></i> Simulador de Capacidad</button>
+  <button class="mod-tab" data-mod="programacion"><i class="fa-solid fa-table-columns"></i> Programación de Referencias</button>
+  <button class="mod-tab" data-mod="referencia"><i class="fa-solid fa-barcode"></i> Vista por Referencia</button>
+  <button class="mod-tab" data-mod="planificador"><i class="fa-solid fa-timeline"></i> Planificador de Producción</button>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     PAGE 1 — SIMULADOR DE CAPACIDAD
+══════════════════════════════════════════════ -->
+<div class="page active" id="page-capacidad">
+
+  <!-- Plant bar -->
+  <nav class="plant-bar">
+    <button class="plant-tab active" data-plant="ALL"><span class="pdot dp-all"></span> Todas las Plantas</button>
+    <button class="plant-tab" data-plant="PEREIRA"><span class="pdot dp-pei"></span> Pereira</button>
+    <button class="plant-tab" data-plant="BUCARAMANGA"><span class="pdot dp-buc"></span> Girón / Bucaramanga</button>
+    <button class="plant-tab" data-plant="CALDAS"><span class="pdot dp-cal"></span> Caldas</button>
+    <button class="plant-tab" data-plant="COPACABANA"><span class="pdot dp-copa"></span> Copacabana</button>
+  </nav>
+
+  <div style="padding:20px 24px;max-width:1600px;margin:0 auto">
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card"><i class="fa-solid fa-list-check kpi-icon" style="color:var(--amber)"></i>
+        <div class="kpi-label">Operaciones Activas</div>
+        <div class="kpi-value" id="kpiOps" style="color:#FFAC00">—</div>
+        <div class="kpi-sub" id="kpiOpsP">—</div>
+      </div>
+      <div class="kpi-card"><i class="fa-solid fa-users kpi-icon" style="color:var(--teal)"></i>
+        <div class="kpi-label">Operarios Totales</div>
+        <div class="kpi-value" id="kpiOper" style="color:#00657F">—</div>
+        <div class="kpi-sub">Asignados en turno</div>
+      </div>
+      <div class="kpi-card"><i class="fa-solid fa-triangle-exclamation kpi-icon" style="color:var(--rose)"></i>
+        <div class="kpi-label">Cuellos de Botella</div>
+        <div class="kpi-value" id="kpiBN" style="color:#C0392B">—</div>
+        <div class="kpi-sub" id="kpiBNL">Capacidad insuficiente</div>
+      </div>
+      <div class="kpi-card"><i class="fa-solid fa-gauge-high kpi-icon" style="color:var(--green)"></i>
+        <div class="kpi-label">Throughput Límite</div>
+        <div class="kpi-value mono" id="kpiTP" style="color:#AACF00">—</div>
+        <div class="kpi-sub">Op. más restrictiva</div>
+      </div>
+      <div class="kpi-card"><i class="fa-solid fa-money-bill-wave kpi-icon" style="color:#fbbf24"></i>
+        <div class="kpi-label">Costo Laboral / Turno</div>
+        <div class="kpi-value mono" id="kpiCost" style="color:#FFAC00;font-size:17px">—</div>
+        <div class="kpi-sub">Estimado total (COP)</div>
+      </div>
+      <div class="kpi-card"><i class="fa-solid fa-weight-scale kpi-icon" style="color:var(--purple)"></i>
+        <div class="kpi-label">Kg / Hombre-Hora</div>
+        <div class="kpi-value mono" id="kpiKg" style="color:#00657F">—</div>
+        <div class="kpi-sub">Productividad promedio</div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="cgrid">
+      <aside class="side">
+        <!-- Params -->
+        <div class="card">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-sliders"></i> Parámetros Globales</div><span class="badge" style="color:var(--green)">Live</span></div>
+          <div class="cbody">
+            <div class="prow"><div class="plabel"><span>Duración del Turno</span><div class="pval" id="shiftV">8 hrs</div></div><input type="range" id="shiftI" min="1" max="24" step=".5" value="8"></div>
+            <div class="prow"><div class="plabel"><span>Eficiencia de Línea</span><div class="pval" id="effV">85%</div></div><input type="range" id="effI" min="10" max="100" step="1" value="85"></div>
+            <div class="prow"><div class="plabel"><span>Factor T. Estándar</span><div class="pval" id="tfV">100%</div></div><input type="range" id="tfI" min="50" max="200" step="5" value="100"><div class="phint">100% = base · >100% más lento · <100% más rápido</div></div>
+            <hr class="divider">
+            <div class="prow"><div class="plabel"><span>Demanda Objetivo / Turno</span></div><div class="nwrap"><i class="fa-solid fa-bullseye"></i><input type="number" id="demI" value="10000" min="1" step="500"></div></div>
+            <div class="prow"><div class="plabel"><span>Costo Operario / Hora (COP)</span></div><div class="nwrap"><i class="fa-solid fa-dollar-sign"></i><input type="number" id="costI" value="8500" min="0" step="100"></div></div>
+            <hr class="divider">
+            <div class="prow"><div class="plabel"><span>Perfil / Peso Promedio (kg)</span></div>
+              <div class="wbtns">
+                <button class="wbtn" data-w="1.5">L<br><small>1.5</small></button>
+                <button class="wbtn active" data-w="1.8">E<br><small>1.8</small></button>
+                <button class="wbtn" data-w="2.1">P<br><small>2.1</small></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Zone filter -->
+        <div class="card">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-sitemap"></i> Zona / Área</div></div>
+          <div class="zone-wrap" id="zoneWrap"></div>
+        </div>
+        <!-- Plant filter (ALL mode only) -->
+        <div class="card" id="plantFilterCard">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-industry"></i> Plantas Activas</div></div>
+          <div class="cbody" style="gap:8px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600"><input type="checkbox" class="pchk" data-p="PEREIRA" checked><span class="pdot dp-pei"></span> Pereira</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600"><input type="checkbox" class="pchk" data-p="BUCARAMANGA" checked><span class="pdot dp-buc"></span> Girón / Bucaramanga</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600"><input type="checkbox" class="pchk" data-p="CALDAS" checked><span class="pdot dp-cal"></span> Caldas</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600"><input type="checkbox" class="pchk" data-p="COPACABANA" checked><span class="pdot dp-copa"></span> Copacabana</label>
+          </div>
+        </div>
+      </aside>
+
+      <div>
+        <!-- Toolbar -->
+        <div class="tbar">
+          <div class="swrap"><i class="fa-solid fa-magnifying-glass"></i><input type="text" class="sinput" id="srchI" placeholder="Buscar operación, zona..."></div>
+          <div class="tsep"></div>
+          <div class="vtog">
+            <button class="vbtn active" id="vBtnNorm">Por Planta</button>
+            <button class="vbtn" id="vBtnCons">Consolidado</button>
+          </div>
+          <div class="tsep"></div>
+          <span style="font-size:10px;color:var(--text3)">Ordenar:</span>
+          <select class="fsel" id="sortSel">
+            <option value="default">Default</option>
+            <option value="op">Operación A-Z</option>
+            <option value="t-desc">T. Estándar ↓</option>
+            <option value="t-asc">T. Estándar ↑</option>
+            <option value="ops-desc">Operarios ↓</option>
+            <option value="bn">Cuellos primero</option>
+          </select>
+        </div>
+
+        <!-- Table -->
+        <div class="twrap">
+          <div class="thdr"><div class="card-title"><i class="fa-solid fa-table-cells"></i> Tabla de Capacidad Operativa</div><span style="font-size:10px;color:var(--text3)">T.Estándar y Operarios editables</span></div>
+          <div class="tcon"><table><thead id="thead1"></thead><tbody id="tbody1"></tbody></table></div>
+        </div>
+
+        <!-- Charts -->
+        <div class="cgrid2">
+          <div class="ccrd">
+            <div class="ctitle"><i class="fa-solid fa-chart-column"></i> Throughput vs Demanda</div>
+            <div class="cleg"><div class="cleg-item"><div class="cleg-dot" style="background:var(--green)"></div>Suficiente</div><div class="cleg-item"><div class="cleg-dot" style="background:var(--rose)"></div>Cuello</div></div>
+            <div class="cwrap"><canvas id="chTP"></canvas></div>
+          </div>
+          <div class="ccrd">
+            <div class="ctitle"><i class="fa-solid fa-weight-scale"></i> Kg/Hombre-Hora</div>
+            <div class="cwrap"><canvas id="chKg"></canvas></div>
+          </div>
+          <div class="ccrd ccrd-full" id="crossSec">
+            <div class="ctitle"><i class="fa-solid fa-arrows-left-right"></i> Comparativa Multi-Planta — T. Estándar (min)</div>
+            <div class="cleg" id="crossLeg"></div>
+            <div class="cwrap" style="height:260px"><canvas id="chCross"></canvas></div>
+          </div>
+          <div class="ccrd">
+            <div class="ctitle"><i class="fa-solid fa-chart-pie"></i> Operarios por Zona</div>
+            <div class="cwrap"><canvas id="chZone"></canvas></div>
+          </div>
+          <div class="ccrd">
+            <div class="ctitle"><i class="fa-solid fa-chart-scatter"></i> Complejidad vs. Dotación</div>
+            <div class="cwrap"><canvas id="chScat"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE 2 — PROGRAMACIÓN DE REFERENCIAS
+══════════════════════════════════════════════ -->
+<div class="page" id="page-programacion">
+  <div style="padding:20px 24px;max-width:1600px;margin:0 auto">
+    <div style="display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:18px">
+      <div class="card" style="flex:1;min-width:280px">
+        <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-sliders"></i> Parámetros de Programación</div></div>
+        <div class="cbody">
+          <div class="prow"><div class="plabel"><span>Cantidad de Pollos / Turno</span></div><div class="nwrap"><i class="fa-solid fa-hashtag"></i><input type="number" id="pCant" value="5000" min="100" step="100"></div></div>
+          <div class="prow"><div class="plabel"><span>Horas del Turno</span></div><div class="nwrap"><i class="fa-solid fa-clock"></i><input type="number" id="pHrs" value="8" min="1" max="24" step=".5"></div></div>
+          <div class="prow"><div class="plabel"><span>Eficiencia Global</span><div class="pval" id="pEffV">85%</div></div><input type="range" id="pEffI" min="10" max="100" step="1" value="85"></div>
+          <hr class="divider">
+          <div class="prow"><div class="plabel"><span>Perfil de Peso</span></div>
+            <div class="wbtns">
+              <button class="wbtn" data-pw="1.5" id="pwL">Liviano<br><small>~1.5kg</small></button>
+              <button class="wbtn active" data-pw="1.8" id="pwE">Estándar<br><small>~1.8kg</small></button>
+              <button class="wbtn" data-pw="2.1" id="pwP">Pesado<br><small>~2.1kg</small></button>
+            </div>
+          </div>
+          <hr class="divider">
+          <div class="prow"><div class="plabel"><span>Vista de resultados</span></div>
+            <div class="vtog" style="width:100%">
+              <button class="vbtn active" id="pVUnid" style="flex:1">Unidades / Hr</button>
+              <button class="vbtn" id="pVKg" style="flex:1">Kg / Hr</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matrix summary KPIs -->
+      <div style="flex:3;min-width:400px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <div class="kpi-card"><div class="kpi-label">Plantas en Comparación</div><div class="kpi-value" id="mKpiP" style="color:#FFAC00">3</div></div>
+          <div class="kpi-card"><div class="kpi-label">Operaciones Comunes</div><div class="kpi-value" id="mKpiO" style="color:#00657F">—</div></div>
+          <div class="kpi-card"><div class="kpi-label">Tiempo Total Est. (hrs)</div><div class="kpi-value" id="mKpiT" style="color:#AACF00">—</div></div>
+        </div>
+        <div class="card" style="flex:1">
+          <div class="card-hdr">
+            <div class="card-title"><i class="fa-solid fa-industry"></i> Plantas a Comparar</div>
+          </div>
+          <div class="cbody" style="flex-direction:row;flex-wrap:wrap;gap:10px">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600"><input type="checkbox" class="mchk" data-p="PEREIRA" checked><span class="pdot dp-pei"></span> Pereira</label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600"><input type="checkbox" class="mchk" data-p="BUCARAMANGA" checked><span class="pdot dp-buc"></span> Girón / Buc</label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600"><input type="checkbox" class="mchk" data-p="CALDAS" checked><span class="pdot dp-cal"></span> Caldas</label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px;font-weight:600"><input type="checkbox" class="mchk" data-p="COPACABANA"><span class="pdot dp-copa"></span> Copacabana</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matrix Table -->
+    <div class="twrap">
+      <div class="thdr">
+        <div class="card-title"><i class="fa-solid fa-table-columns"></i> Matriz de Tiempo por Planta / Operación</div>
+        <span style="font-size:10px;color:var(--text3)">Color: <span style="color:var(--green)">■</span> OK en turno &nbsp;<span style="color:var(--amber)">■</span> Ajustado &nbsp;<span style="color:var(--rose)">■</span> Excede turno</span>
+      </div>
+      <div class="tcon" style="max-height:520px"><table id="matrixTable"><thead id="matHead"></thead><tbody id="matBody"></tbody></table></div>
+    </div>
+
+    <!-- Chart -->
+    <div class="cgrid2" style="margin-top:14px">
+      <div class="ccrd ccrd-full">
+        <div class="ctitle"><i class="fa-solid fa-chart-bar"></i> Throughput Comparativo por Operación (Unidades/hr)</div>
+        <div class="cleg" id="matLeg"></div>
+        <div class="cwrap" style="height:260px"><canvas id="chMat"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE 3 — VISTA POR REFERENCIA
+══════════════════════════════════════════════ -->
+<div class="page" id="page-referencia">
+  <div style="padding:20px 24px;max-width:1600px;margin:0 auto">
+
+    <!-- Controls -->
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+      <div style="flex:1;min-width:280px">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Seleccionar Referencia</div>
+        <select class="ref-selector" id="refSel"></select>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Vista</div>
+        <div class="vtog">
+          <button class="vbtn active" id="rVUnid">Unidades / Hr</button>
+          <button class="vbtn" id="rVKg">Kg / Hr</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Parámetros</div>
+        <div style="display:flex;gap:8px">
+          <div class="nwrap" style="width:100px"><i class="fa-solid fa-clock"></i><input type="number" id="rHrs" value="8" min="1" max="24" step=".5" style="width:100px"></div>
+          <div class="nwrap" style="width:120px"><i class="fa-solid fa-gauge"></i><input type="number" id="rEff" value="85" min="10" max="100" step="1" style="width:120px"></div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:3px">Turno (hrs) · Eficiencia (%)</div>
+      </div>
+    </div>
+
+    <!-- Reference card -->
+    <div id="refCard"></div>
+
+    <!-- Flow diagram -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-diagram-project"></i> Flujo de Producción</div></div>
+      <div style="padding:8px 16px 16px"><div class="flow-wrap" id="flowWrap"></div></div>
+    </div>
+
+    <!-- Operations table for reference -->
+    <div class="twrap" style="margin-bottom:14px">
+      <div class="thdr"><div class="card-title"><i class="fa-solid fa-table"></i> Operaciones de la Referencia (Pereira)</div></div>
+      <div class="tcon"><table><thead id="rtHead"></thead><tbody id="rtBody"></tbody></table></div>
+    </div>
+
+    <!-- Chart -->
+    <div class="ccrd">
+      <div class="ctitle"><i class="fa-solid fa-chart-bar"></i> Capacidad por Operación</div>
+      <div class="cwrap" style="height:240px"><canvas id="chRef"></canvas></div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE 4 — PLANIFICADOR DE PRODUCCIÓN
+══════════════════════════════════════════════ -->
+<div class="page" id="page-planificador">
+  <div style="padding:20px 24px;max-width:1600px;margin:0 auto">
+
+    <div class="cgrid">
+      <!-- Config -->
+      <aside class="side">
+        <div class="card">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-industry"></i> Configuración</div></div>
+          <div class="cbody">
+            <div class="prow"><div class="plabel"><span>Planta</span></div>
+              <select class="fsel" id="plnPlanta" style="width:100%">
+                <option value="PEREIRA">Pereira</option>
+                <option value="BUCARAMANGA">Girón / Bucaramanga</option>
+                <option value="CALDAS">Caldas</option>
+              </select>
+            </div>
+            <div class="prow"><div class="plabel"><span>Tipo de Referencia</span></div>
+              <select class="fsel" id="plnTipo" style="width:100%">
+                <option value="PE_SIN_MAR">Pollo Entero — Sin Marinar</option>
+                <option value="PE_MARINADO">Pollo Entero — Marinado</option>
+                <option value="PECHUGA">Presas / Pechuga</option>
+                <option value="VISCERA">Vísceras</option>
+              </select>
+            </div>
+            <hr class="divider">
+            <div class="prow"><div class="plabel"><span>Cantidad de Pollos</span></div><div class="nwrap"><i class="fa-solid fa-hashtag"></i><input type="number" id="plnCant" value="5000" min="100" step="100"></div></div>
+            <div class="prow"><div class="plabel"><span>Perfil de Peso</span></div>
+              <div class="wbtns">
+                <button class="wbtn" data-plw="1.5">L<br><small>1.5kg</small></button>
+                <button class="wbtn active" data-plw="1.8">E<br><small>1.8kg</small></button>
+                <button class="wbtn" data-plw="2.1">P<br><small>2.1kg</small></button>
+              </div>
+            </div>
+            <div class="prow"><div class="plabel"><span>Horas del Turno</span></div><div class="nwrap"><i class="fa-solid fa-clock"></i><input type="number" id="plnHrs" value="8" min="1" max="24" step=".5"></div></div>
+            <hr class="divider">
+            <div class="prow"><div class="plabel"><span>Número de Cunas</span><span id="plnCunasV" style="color:var(--amber);font-weight:700">3</span></div>
+              <input type="range" id="plnCunasI" min="1" max="10" step="1" value="3">
+              <div class="phint">Cunas = puestos de trabajo en pollo entero</div>
+            </div>
+            <div class="prow"><div class="plabel"><span>Operarios por Cuna</span><span id="plnOpsV" style="color:var(--amber);font-weight:700">1</span></div>
+              <input type="range" id="plnOpsI" min="1" max="5" step="1" value="1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Efficiency by area -->
+        <div class="card">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-percent"></i> Eficiencia por Área</div><span class="badge">Configurable</span></div>
+          <div class="cbody">
+            <div class="eff-area-row"><div class="eff-area-label"><span>Beneficio</span><span id="effBenV">85%</span></div><input type="range" id="effBenI" min="10" max="100" step="1" value="85"></div>
+            <div class="eff-area-row"><div class="eff-area-label"><span>Eviscerado</span><span id="effEviV">85%</span></div><input type="range" id="effEviI" min="10" max="100" step="1" value="85"></div>
+            <div class="eff-area-row"><div class="eff-area-label"><span>Despresado</span><span id="effDesV">80%</span></div><input type="range" id="effDesI" min="10" max="100" step="1" value="80"></div>
+            <div class="eff-area-row"><div class="eff-area-label"><span>Empaque</span><span id="effEmpV">75%</span></div><input type="range" id="effEmpI" min="10" max="100" step="1" value="75"></div>
+            <hr class="divider">
+            <div class="eff-area-row"><div class="eff-area-label"><span>Tasa Empaque (und/min/op)</span><span id="empRateV">12</span></div><input type="range" id="empRateI" min="1" max="60" step="1" value="12"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Result -->
+      <div>
+        <!-- Flow result -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-timeline"></i> Flujo de Producción — Tiempos Estimados</div>
+            <button class="btn btn-amber" id="btnCalcPlan" style="padding:5px 12px;font-size:11px;background:#00657F;color:#fff"><i class="fa-solid fa-play"></i> Calcular</button>
+          </div>
+          <div style="padding:16px" id="planFlow">
+            <div class="empty"><i class="fa-solid fa-play-circle"></i>Configura los parámetros y presiona Calcular</div>
+          </div>
+        </div>
+
+        <!-- Result KPIs -->
+        <div id="planKpis" style="display:none">
+          <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+            <div class="kpi-card"><div class="kpi-label">Tiempo Total</div><div class="kpi-value mono" id="plnKpiTime" style="color:var(--amber)">—</div><div class="kpi-sub">Horas estimadas</div></div>
+            <div class="kpi-card"><div class="kpi-label">Kg Totales</div><div class="kpi-value mono" id="plnKpiKg" style="color:var(--teal)">—</div><div class="kpi-sub">Peso total a procesar</div></div>
+            <div class="kpi-card"><div class="kpi-label">Operarios Totales</div><div class="kpi-value mono" id="plnKpiOps" style="color:var(--green)">—</div><div class="kpi-sub">Dotación requerida</div></div>
+            <div class="kpi-card"><div class="kpi-label">Cuellos de Botella</div><div class="kpi-value mono" id="plnKpiBN" style="color:var(--rose)">—</div><div class="kpi-sub">Áreas restrictivas</div></div>
+          </div>
+        </div>
+
+        <!-- Cunas visualization -->
+        <div class="card" style="margin-top:14px" id="cunasCard">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-border-all"></i> Cunas — Pollo Entero</div><span class="badge" id="cunaBadge">3 cunas</span></div>
+          <div style="padding:14px 16px">
+            <div class="cunas-grid" id="cunasGrid"></div>
+            <div style="margin-top:12px;font-size:11px;color:var(--text3)">Flujo: <span style="color:var(--text2)">Línea de Colgado → Cunas → </span><span id="cunasFlow" style="color:var(--amber)">Marinadora → Empaque</span></div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="ccrd" style="margin-top:14px">
+          <div class="ctitle"><i class="fa-solid fa-chart-gantt"></i> Tiempo por Etapa del Proceso</div>
+          <div class="cwrap" style="height:200px"><canvas id="chPlan"></canvas></div>
+        </div>
+
+        <!-- Notes checklist -->
+        <div class="card" style="margin-top:14px">
+          <div class="card-hdr"><div class="card-title"><i class="fa-solid fa-clipboard-check"></i> Funcionalidades de la Reunión</div></div>
+          <div class="cbody" style="gap:8px">
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#AACF00">✓</span> Información detallada por referencia (Módulo 3)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#AACF00">✓</span> Seleccionar visuales según necesidad (Unidades / Kg)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#AACF00">✓</span> Eficiencia configurable por planta, área y puesto</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#AACF00">✓</span> Procesos de empaque (unidades × minuto)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#AACF00">✓</span> Anclaje centro de trabajo → referencia (Módulo 3)</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#AACF00">✓</span> Simulación cunas por cantidad y perfil de peso</div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px"><span style="color:#FFAC00">⏳</span> Número de cunas por planta — pendiente validación en campo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>© 2026 Grupo BIOS S.A.S — OPAV · Plataforma de Capacidad Multi-Planta</span>
+  <span style="color:#AACF00;font-size:10px;font-weight:700">v2.0</span>
+</footer>
+
+<script>
+// ═══════════════ DATA ═══════════════
+const PD = {"PEREIRA":[{"op":"CARGUE DE HUACALES","z":"BENEFICIO","t":0.0874,"tReal":0.0874,"o":2,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE POLLO VIVO","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO POLLO VIVO","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":9,"m":0,"maq":"MANUAL"},{"op":"CORTADORA CLOACA","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA COCOROTA","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE COCOROTAS","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTE DE PATAS","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"MANUAL"},{"op":"CORTE YUGULAR","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"KILLER ITA"},{"op":"DESAPILAR HUACALES HACIA BANDA","z":"BENEFICIO","t":0.09154,"tReal":0.09154,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESCARGAR HUACALES","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESCARGUE DE CAMIÓN (HALAR HUACALES A LA BASCULA)","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESCARGUE DE HUACALES","z":"BENEFICIO","t":0.09154,"tReal":0.09154,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESCOLGADOR DE PATAS","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESPLUMADORA","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"DESPLUMADORA KASCSA"},{"op":"ESCALDADO","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"ESCALDADORA CANTREL"},{"op":"ESCALDADO DE POLLO ENTERO","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ESCALDADORA DE COCOROTAS","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ESCALDADORA DE PATAS CANTREL","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"INSENSIBILIZADO","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"INSENSIBILIZADOR"},{"op":"INSENSIBILIZADO DE POLLO VIVO","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"PELADORA DE CORVEJON","z":"BENEFICIO","t":0.43868,"tReal":0.43868,"o":1,"m":0,"maq":"BANDA IQF"},{"op":"PELADORA DE PATAS B/MANGA","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"PESAJE MANUAL","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"REMOCIÓN GRANULOMA PLANTAR","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"REPASADOR","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":3,"m":0,"maq":"MANUAL"},{"op":"REPASADORA","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TRANSPORTE","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TUMBADORA DE PATAS","z":"BENEFICIO","t":1.26667,"tReal":1.26667,"o":1,"m":0,"maq":"MESA DE EMPAQUE"},{"op":"CLASIFICACIÓN DE POLLO POR PESO","z":"CLASIFICACIÓN POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.MAR.DESHUESADO","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.MAR.SIN.PECHUGA","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.PECHUGA.MAR","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.PECHUGA.SINMARINAR","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.SELLADO.MARINADO","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CONGELAMIENTO INDIVIDUAL","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTE AUTOMATICO DE PRESAS","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"EASY GRADER","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"EMPAQUE DE PRESAS, GRANEL O BOLSAS","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"INYECCIÓN Y ESCURRIDO DE PRESAS","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENFRIAMIENTO Y DESINFECCIÓN POLLO ENTERO","z":"ENFRIAMENTO DE CANAL P.E","t":0.05,"tReal":0,"o":1,"m":0,"maq":"CHILLERS CANAL"},{"op":"EMPAQUE DE VISCERA - BOLSA, BANDEJA, GRANEL","z":"ENFRIAMIENTO DE VÍSCERA","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CLASIFICACIÓN DE POLLO POR PESO","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE CANAL CON VÍSCERA","z":"EVISCERADO","t":0.05281,"tReal":0.05281,"o":4,"m":0,"maq":"MANUAL"},{"op":"CORTADORA CLOACA","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE ABDOMEN","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE PESCUEZOS","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"MANUAL"},{"op":"CORTE ABDOMINAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":1,"maq":"MANUAL"},{"op":"EXTRACCIÓN DE BUCHE Y TRAQUEA","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"EXTRACTORA DE PULMONES","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"INSPECCIÓN DEL CANAL POLLO ENTERO","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"MANUAL"},{"op":"INSPECCIÓN FINAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":4,"m":0,"maq":"MANUAL"},{"op":"LAVADO INTERNO Y EXTERNO","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"MAESTRO EVISCERADOR","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"PULIDO MANUAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"PULIDO POLLO ENTERO","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"REMOCIÓN DE HIGADO Y CORAZON","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"REMOCIÓN PAQUETE INTESTINAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":8,"m":0,"maq":"MANUAL"},{"op":"REPASADOR DE MOLLEJAS","z":"EVISCERADO","t":0.05466,"tReal":0.05466,"o":3,"m":0,"maq":"MANUAL"},{"op":"SEPARADOR CORAZÓN E HÍGADO","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TOLERANCIA CERO","z":"EVISCERADO","t":0.28333,"tReal":0.28333,"o":1,"m":0,"maq":"MESA DE EMPAQUE"},{"op":"VERIFICADOR DE HIELES","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.EMP. GRANEL/BOLSA","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.EMPACAR","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.EMPACAR Y S","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DHS - 01 (P","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"GF - 01 (PER)","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"GF - 02 (PER)","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CLASIFICACIÓN POLLO ENTERO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"LINEA DE PESAJE"},{"op":"COLGADO DE CANAL POLLO ENTERO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":6,"m":1,"maq":"MANUAL"},{"op":"EMPACAR BOLSA","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"MANUAL"},{"op":"MARINACIÓN","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"}],"BUCARAMANGA":[{"op":"COLGADO DE POLLO VIVO","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":6,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE COCOROTAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"CORTADORA DE COCOROT"},{"op":"CORTE DE PATAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"CORTADORA DE PATAS S"},{"op":"CORTE YUGULAR","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":2,"m":0,"maq":"KILLER ITA"},{"op":"DESCARGAR HUACALES","z":"BENEFICIO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"ELEVADOR DE HUACALES"},{"op":"DESCARGUE DE CAMIÓN (HALAR HUACALES A LA BASCULA)","z":"BENEFICIO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESPLUMADORA","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"DESPLUMADORA KASCSA"},{"op":"ESCALDADO DE POLLO ENTERO","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"ESCALDADORA CANTREL"},{"op":"ESCALDADORA DE COCOROTAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"ESCALDADORA DE COCOR"},{"op":"ESCALDADORA DE PATAS CANTREL","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"ESCALDADORA DE PATAS"},{"op":"INSENSIBILIZADO DE POLLO VIVO","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"INSENSIBILIZADOR"},{"op":"PELADORA DE CORVEJON","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"PELADORA DE CORVEJON"},{"op":"PELADORA DE PATAS B/MANGA","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"PELADORA DE PATAS B/"},{"op":"REMOCIÓN GRANULOMA PLANTAR","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":4,"m":2,"maq":"MANUAL"},{"op":"REPASADORA","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"REPASADORA"},{"op":"TUMBADORA DE PATAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"TUMBADOR DE PATAS SE"},{"op":"BANDA","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"BANDA DE PECHUGA"},{"op":"DESPRESADO AUTOMÁTICO","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"LINEA DE DESPRESADO "},{"op":"EMPACAR BOLSA","z":"DESPRESADO","t":0.491,"tReal":0.491,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A CUARTOS","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"BANDA TRANSPORTADORA"},{"op":"ESCURRIDO","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"ESCURRIDOR"},{"op":"MARINACIÓN","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MARINADORA HENNEKEN "},{"op":"TRANSPORTE","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TRANSPORTE BANDA","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENFRIAMIENTO Y DESINFECCIÓN POLLO ENTERO","z":"ENFRIAMENTO DE CANAL P.E","t":0.05,"tReal":0,"o":1,"m":1,"maq":"CHILLER ITA"},{"op":"COLGADO DE CANAL CON VÍSCERA","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":3,"m":1,"maq":"MANUAL"},{"op":"CORTADORA CLOACA","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"CORTADORA DE CLOCACA"},{"op":"CORTADORA DE ABDOMEN","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"CORTADORA DE ABDOMEN"},{"op":"CORTADORA DE PESCUEZOS","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"QUEBRADORA DE CUELLO"},{"op":"EXTRACCIÓN DE BUCHE Y TRAQUEA","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"EXTRACTORA  BUCHE Y "},{"op":"EXTRACTORA DE PULMONES","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"EXTRACTORA DE PULMON"},{"op":"INSPECCIÓN DEL CANAL POLLO ENTERO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":2,"m":1,"maq":"MANUAL"},{"op":"INSPECCIÓN FINAL","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":3,"m":1,"maq":"MANUAL"},{"op":"LAVADO INTERNO Y EXTERNO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":2,"maq":"LAVADORA INTERNA / E"},{"op":"MAESTRO EVISCERADOR","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"EVISCERADOR LINCO"},{"op":"PULIDO POLLO ENTERO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":2,"maq":"MANUAL"},{"op":"REMOCIÓN DE HIGADO Y CORAZON","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":5,"m":1,"maq":"MANUAL"},{"op":"REMOCIÓN PAQUETE INTESTINAL","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":6,"m":1,"maq":"MANUAL"},{"op":"REPASADOR DE MOLLEJAS","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":2,"m":2,"maq":"PROCESADORA DE MOLLE"},{"op":"SEPARADOR CORAZÓN E HÍGADO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":3,"m":1,"maq":"MANUAL"},{"op":"TOLERANCIA CERO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":2,"maq":"MANUAL"},{"op":"VERIFICADOR DE HIELES","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"MANUAL"},{"op":"COLGADO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE CANAL POLLO ENTERO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"MANUAL"},{"op":"DETECTORA DE METALES","z":"POLLO ENTERO","t":0.1,"tReal":0.1,"o":1,"m":0,"maq":"METTLER TOLEDO 1500"},{"op":"EMPACAR BOLSA","z":"POLLO ENTERO","t":2.036,"tReal":2.036,"o":1,"m":0,"maq":"MANUAL"},{"op":"EMPAQUE FUNDA","z":"POLLO ENTERO","t":0.96886,"tReal":0.96886,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A CUARTOS","z":"POLLO ENTERO","t":0.48012,"tReal":0.48012,"o":1,"m":0,"maq":"MANUAL"},{"op":"ESCURRIDO","z":"POLLO ENTERO","t":0.4005,"tReal":0.4005,"o":1,"m":0,"maq":"ESCURRIDOR"},{"op":"MARINACIÓN","z":"POLLO ENTERO","t":0.715,"tReal":0.715,"o":1,"m":0,"maq":"MARINADORA HENNEKEN "},{"op":"PESAJE MANUAL","z":"POLLO ENTERO","t":0.341,"tReal":0.341,"o":1,"m":0,"maq":"ISHIDA UNT 3"},{"op":"SELECCIÓN DE POLLO ENTERO","z":"POLLO ENTERO","t":0.09333,"tReal":0.09333,"o":1,"m":0,"maq":"EASY GRADER 1"},{"op":"SELLADO AUTOMÁTICO BOLSA","z":"POLLO ENTERO","t":0.595,"tReal":0.595,"o":1,"m":0,"maq":"SELLADORA TERMICA GO"},{"op":"TRANSPORTE","z":"POLLO ENTERO","t":0.571,"tReal":0.571,"o":1,"m":0,"maq":"MANUAL"},{"op":"TRANSPORTE BANDA","z":"POLLO ENTERO","t":0.22,"tReal":0.22,"o":1,"m":0,"maq":"MARINADORA HENNEKEN "}],"CALDAS":[{"op":"ABRIR TAPA DE HUACALES","z":"BENEFICIO","t":0.98,"tReal":0.98,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE POLLO EN PIE","z":"BENEFICIO","t":1.176,"tReal":1.176,"o":10,"m":0,"maq":"MANUAL"},{"op":"CORTADORA COCOROTA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"CORTADORA DE COCOROT"},{"op":"CORTADORA PATAS","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"CORTADORA DE PATAS"},{"op":"CORTE YUGULAR","z":"BENEFICIO","t":2.68,"tReal":2.68,"o":1,"m":0,"maq":"KILLER"},{"op":"DESAPILAR HUACALES HACIA BANDA","z":"BENEFICIO","t":1.176,"tReal":1.176,"o":3,"m":0,"maq":"MANUAL"},{"op":"DESCARGAR CAMIÓN (HALADOR)","z":"BENEFICIO","t":0.588,"tReal":0.588,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESCOLGADOR DE PATAS","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"DESCOLGADOR DE PATAS"},{"op":"DESPLUMADORA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"DESPLUMADORA KACSA D"},{"op":"ESCALDADO POLLO CON VISCERAS","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"ESCALDADORA"},{"op":"ESCALDADO Y LIMPIEZA DE PATA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"ESCALDADORA DE PATAS"},{"op":"INSENSIBILIZADO","z":"BENEFICIO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"INSENSIBILIZADOR"},{"op":"LÍNEA BENEFICIO","z":"BENEFICIO","t":1.0,"tReal":1.0,"o":1,"m":0,"maq":"LÍNEA DE BENEFICIO"},{"op":"PELADORA DE PATAS","z":"BENEFICIO","t":2.45667,"tReal":2.45667,"o":1,"m":0,"maq":"PELADORA DE PATAS"},{"op":"RECOLGADOR","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"MANUAL"},{"op":"REPASADORA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"DESPLUMADORA CP80"},{"op":"RETIRAR PLUMA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":2,"m":0,"maq":"MANUAL"},{"op":"VALIDACIÓN KILER","z":"BENEFICIO","t":2.68,"tReal":2.68,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADORES CAMBIO DE LINEA","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":5,"m":0,"maq":"LÍNEA DE EVISCERADO"},{"op":"CORTADO DE ABDOMEN","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"CORTADORA DE ABDOMEN"},{"op":"CORTADO DE CLOACAS","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"CORTADORA DE CLOACAS"},{"op":"CORTADOR DE HIGADO Y CORAZÓN","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"CORTADOR DE HIGADO Y"},{"op":"CORTADORA DE CUELLOS","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"CORTADORA DE CUELLOS"},{"op":"EVISCERADOR","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MAESTRO EVISCERADOR"},{"op":"EVISCERADOR MANUAL","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"LÍNEA DE EVISCERADO"},{"op":"EXTRACTOR DE PULMONES","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"EXTRACTOR DE PULMONE"},{"op":"EXTRACTORA DE BUCHES Y TRAQUEA (CROOPER)","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"EXTRACTORA DE BUCHES"},{"op":"LAVADORA INTERNA/EXTERNA","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"LAVADORA INTERNA/EXT"},{"op":"LÍNEA EVISCERACIÓN","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"LÍNEA DE EVISCERADO"},{"op":"PROCESADO DE MOLLEJAS USINOX PMU-7000","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"PROCESADORA DE MOLLE"},{"op":"REPASADO DE MOLLEJAS TEKPRO PMP 8R","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":2,"m":0,"maq":"REPASADORA DE MOLLEJ"},{"op":"RETIRO PRODUCTO LINEA INSPECCIÓN","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"MANUAL"},{"op":"SEPARADO DE HIGADOS Y CORAZONES Y TRANSPORTADOR PLANO","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":6,"m":0,"maq":"SEPARADOR DE HIGADOS"},{"op":"TOLERANCIA CERO","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"TOLERANCIA CERO"},{"op":"TRANSPORTADO DE BANDEJAS","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"TRANSPORTADOR DE BAN"},{"op":"DESCARGAR CAMIÓN (HALADOR)","z":"GENERAL","t":0.588,"tReal":0.588,"o":2,"m":0,"maq":"MANUAL"}],"COPACABANA":[{"op":"COCCIÓN","z":"COCCIÓN","t":28.506,"tReal":28.506,"o":1,"m":0,"maq":"HORNO TALSA 1"},{"op":"DUCHADO","z":"DUCHADO","t":4.53289,"tReal":4.53289,"o":2,"m":0,"maq":"DUCHAS"},{"op":"ENCANASTADO","z":"DUCHADO","t":6.23145,"tReal":6.23145,"o":2,"m":0,"maq":"MANUAL"},{"op":"GOLPE DE FRÍO","z":"DUCHADO","t":96.49399,"tReal":96.49399,"o":1,"m":0,"maq":"TÚNEL 1"},{"op":"LIBERACIÓN DE CALIDAD","z":"DUCHADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESINFECCIÓN ASPERSIÓN","z":"EMPAQUE","t":1.01,"tReal":1.01,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESMECHADO","z":"EMPAQUE","t":12.499,"tReal":12.499,"o":1,"m":0,"maq":"MANUAL"},{"op":"EMBALAJE","z":"EMPAQUE","t":7.17536,"tReal":7.17536,"o":4,"m":0,"maq":"MANUAL"},{"op":"EMPAQUE BOLSA","z":"EMPAQUE","t":10.50028,"tReal":10.50028,"o":8,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A LOGÍSTICA","z":"EMPAQUE","t":2.12015,"tReal":2.12015,"o":1,"m":0,"maq":"MANUAL"},{"op":"LIBERACIÓN DE CALIDAD","z":"EMPAQUE","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"LOTEADO","z":"EMPAQUE","t":4.29557,"tReal":4.29557,"o":2,"m":0,"maq":"CODIFICADORA VIDEOJE"},{"op":"PESAJE MANUAL","z":"EMPAQUE","t":2.0068,"tReal":2.0068,"o":4,"m":0,"maq":"MANUAL"},{"op":"PORCIONADO AUTOMÁTICO","z":"EMPAQUE","t":2.06945,"tReal":2.06945,"o":2,"m":0,"maq":"PORCIONADORA VEMAG"},{"op":"SELLADO MANUAL BOLSA","z":"EMPAQUE","t":8.02837,"tReal":8.02837,"o":2,"m":0,"maq":"ENCINTADORA"},{"op":"TAJADO","z":"EMPAQUE","t":0.05,"tReal":0,"o":1,"m":0,"maq":"TAJADORA WEBER"},{"op":"TERMOFORMADO","z":"EMPAQUE","t":18.77,"tReal":18.77,"o":3,"m":0,"maq":"TERMOFORMADORA VARIO"},{"op":"TRANSPORTE","z":"EMPAQUE","t":1.65109,"tReal":1.65109,"o":1,"m":0,"maq":"MANUAL"},{"op":"TROCEADO","z":"EMPAQUE","t":14.41986,"tReal":14.41986,"o":1,"m":0,"maq":"MANUAL"},{"op":"COCCIÓN","z":"PROCESO","t":23.14531,"tReal":23.14531,"o":1,"m":0,"maq":"HORNO UNOX"},{"op":"CONGELACIÓN","z":"PROCESO","t":184.28757,"tReal":184.28757,"o":1,"m":0,"maq":"TÚNEL 5"},{"op":"DESEMPARRILLADO","z":"PROCESO","t":7.23408,"tReal":7.23408,"o":1,"m":0,"maq":"MANUAL"},{"op":"DOSIFICACIÓN","z":"PROCESO","t":8.3831,"tReal":8.3831,"o":4,"m":0,"maq":"MANUAL"},{"op":"EMBUTIDO","z":"PROCESO","t":4.32892,"tReal":4.32892,"o":5,"m":0,"maq":"EMBUTIDORA VEMAG HP1"},{"op":"EMPARRILLADO","z":"PROCESO","t":23.21905,"tReal":23.21905,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A LOGÍSTICA","z":"PROCESO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"LLENADO DE HORNO","z":"PROCESO","t":6.018,"tReal":6.018,"o":1,"m":0,"maq":"MANUAL"},{"op":"MEZCLADO","z":"PROCESO","t":4.49935,"tReal":4.49935,"o":1,"m":0,"maq":"MEZCLADOR WOLFKING"},{"op":"MOLINO","z":"PROCESO","t":6.12555,"tReal":6.12555,"o":1,"m":0,"maq":"MOLINO WOLFKING"},{"op":"PESAJE MANUAL","z":"PROCESO","t":1.53914,"tReal":1.53914,"o":1,"m":0,"maq":"MANUAL"},{"op":"TOMBLEADO","z":"PROCESO","t":13.714,"tReal":13.714,"o":1,"m":0,"maq":"MANUAL"}]};
+const RD = {"references":[{"id":"41031221","desc":"POLLO S.V. 1.6-1.7 GNEL","pesoMin":1.6,"pesoMax":1.7,"tipo":"PE","marinado":false,"perfil":"L"},{"id":"41031521","desc":"POLLO S.V. 1.7-1.8 GNEL","pesoMin":1.7,"pesoMax":1.8,"tipo":"PE","marinado":false,"perfil":"E"},{"id":"41031821","desc":"POLLO S.V. Y S/MAR 1.8-2.2","pesoMin":1.8,"pesoMax":2.2,"tipo":"PE","marinado":true,"perfil":"P"},{"id":"41031921","desc":"POLLO S.V. 1.8-1.9 GNEL","pesoMin":1.8,"pesoMax":1.9,"tipo":"PE","marinado":false,"perfil":"E"},{"id":"41032221","desc":"POLLO S.V. 2.0-2.2 GNEL","pesoMin":2.0,"pesoMax":2.2,"tipo":"PE","marinado":false,"perfil":"P"},{"id":"41041131","desc":"PECHUGA X4 BOLSA CONG IQF","pesoMin":0.35,"pesoMax":0.45,"tipo":"PECHUGA","marinado":false,"perfil":"E"},{"id":"41041831","desc":"PECHUGAS MAR BRASSET BJA CONG","pesoMin":0.35,"pesoMax":0.45,"tipo":"PECHUGA","marinado":true,"perfil":"E"},{"id":"41041921","desc":"PECHUGA GNEL REF MARINADA","pesoMin":0.35,"pesoMax":0.45,"tipo":"PECHUGA","marinado":true,"perfil":"E"},{"id":"41042021","desc":"PECHUGA GNEL REF SIN MARINAR","pesoMin":0.35,"pesoMax":0.45,"tipo":"PECHUGA","marinado":false,"perfil":"E"},{"id":"41047721","desc":"PECHUGA GNEL REF MARINADA AQUA","pesoMin":0.35,"pesoMax":0.45,"tipo":"PECHUGA","marinado":true,"perfil":"E"},{"id":"41049021","desc":"TROZOS DE PECHUGA x5 k CONG","pesoMin":5.0,"pesoMax":5.0,"tipo":"PECHUGA","marinado":false,"perfil":"E"},{"id":"41060221","desc":"CONTRAMUSLO C/R X8 BOLSA CONG","pesoMin":0.28,"pesoMax":0.35,"tipo":"PRESA","marinado":false,"perfil":"E"},{"id":"41080011","desc":"RABADILLA A GRANEL CANASTILLA FK","pesoMin":0.08,"pesoMax":0.12,"tipo":"PRESA","marinado":false,"perfil":"E"},{"id":"41100521","desc":"VISCERA ORDINARIA CONG","pesoMin":0.15,"pesoMax":0.25,"tipo":"VISCERA","marinado":false,"perfil":"E"},{"id":"41152521","desc":"PERNIL C/R X5 BOLSA CONG IQF","pesoMin":0.45,"pesoMax":0.55,"tipo":"PRESA","marinado":false,"perfil":"E"},{"id":"41152621","desc":"PERNIL C/R MAR. GNEL REF.(L)","pesoMin":0.45,"pesoMax":0.55,"tipo":"PRESA","marinado":true,"perfil":"L"},{"id":"41220121","desc":"COSTILLAR GNEL CONG","pesoMin":0.2,"pesoMax":0.3,"tipo":"PRESA","marinado":false,"perfil":"E"},{"id":"44000057","desc":"PECHUGA PRIMERA GNEL REF PROC S/MAR","pesoMin":0.35,"pesoMax":0.45,"tipo":"PECHUGA","marinado":false,"perfil":"P"}],"opsByRef":{"41031221":["CLASIFICACIÓN DE POLLO POR PESO","COLGADO DE POLLO VIVO","CORTADORA CLOACA","CORTE DE PATAS","CORTE YUGULAR","DESPLUMADORA","ESCALDADORA DE PATAS CANTREL","EXTRACCIÓN DE BUCHE Y TRAQUEA","INSPECCIÓN DEL CANAL POLLO ENTERO","LAVADO INTERNO Y EXTERNO","REMOCIÓN GRANULOMA PLANTAR","TUMBADORA DE PATAS","GF - 01 (PER)","DESCARGUE DE CAMIÓN (HALAR HUACALES A LA BASCULA)","DESCARGAR HUACALES"],"41041131":["CLASIFICACIÓN DE POLLO POR PESO","COLGADO","CONGELAMIENTO INDIVIDUAL","CORTE AUTOMATICO DE PRESAS","C.PECHUGA.MAR","C.EMPACAR Y S","EASY GRADER","EMPAQUE DE PRESAS, GRANEL O BOLSAS","INYECCIÓN Y ESCURRIDO DE PRESAS","REMOCIÓN DE HIGADO Y CORAZON","REMOCIÓN PAQUETE INTESTINAL","TOLERANCIA CERO"],"41041831":["COLGADO","C.EMPACAR","C.PECHUGA.MAR","C.SELLADO.MARINADO","EASY GRADER","INYECCIÓN Y ESCURRIDO DE PRESAS","REMOCIÓN DE HIGADO Y CORAZON","REMOCIÓN PAQUETE INTESTINAL","TOLERANCIA CERO"],"41041921":["COLGADO","C.PECHUGA.MAR","EASY GRADER","EMPAQUE DE PRESAS, GRANEL O BOLSAS","INYECCIÓN Y ESCURRIDO DE PRESAS","REMOCIÓN DE HIGADO Y CORAZON","REMOCIÓN PAQUETE INTESTINAL","TOLERANCIA CERO"],"41042021":["COLGADO","C.PECHUGA.SINMARINAR","EASY GRADER","EMPAQUE DE PRESAS, GRANEL O BOLSAS","REMOCIÓN DE HIGADO Y CORAZON","REMOCIÓN PAQUETE INTESTINAL","TOLERANCIA CERO"],"41060221":["COLGADO","C.MAR.SIN.PECHUGA","EMPAQUE DE PRESAS, GRANEL O BOLSAS","INYECCIÓN Y ESCURRIDO DE PRESAS","REMOCIÓN PAQUETE INTESTINAL","GF - 02 (PER)"],"41080011":["COLGADO","C.EMP. GRANEL/BOLSA","EMPAQUE DE PRESAS, GRANEL O BOLSAS","REMOCIÓN PAQUETE INTESTINAL","GF - 02 (PER)"],"41100521":["EMPAQUE DE VISCERA - BOLSA, BANDEJA, GRANEL","REMOCIÓN DE HIGADO Y CORAZON","REMOCIÓN PAQUETE INTESTINAL","SEPARADOR CORAZÓN E HÍGADO"],"41152521":["COLGADO","C.MAR.SIN.PECHUGA","EMPAQUE DE PRESAS, GRANEL O BOLSAS","INYECCIÓN Y ESCURRIDO DE PRESAS","REMOCIÓN PAQUETE INTESTINAL","GF - 02 (PER)"],"41152621":["COLGADO","C.MAR.SIN.PECHUGA","EMPAQUE DE PRESAS, GRANEL O BOLSAS","INYECCIÓN Y ESCURRIDO DE PRESAS","REMOCIÓN PAQUETE INTESTINAL","GF - 01 (PER)"],"41220121":["COLGADO","C.EMP. GRANEL/BOLSA","EMPAQUE DE PRESAS, GRANEL O BOLSAS","REMOCIÓN PAQUETE INTESTINAL","GF - 02 (PER)"],"44000057":["COLGADO","C.PECHUGA.SINMARINAR","EASY GRADER","EMPAQUE DE PRESAS, GRANEL O BOLSAS","REMOCIÓN DE HIGADO Y CORAZON","REMOCIÓN PAQUETE INTESTINAL","GF - 01 (PER)"]}};
+
+const PC = {
+  PEREIRA:{main:'#00657F',dim:'rgba(0,101,127,0.18)',tag:'tpei'},
+  BUCARAMANGA:{main:'#FFAC00',dim:'rgba(255,172,0,0.15)',tag:'tbuc'},
+  CALDAS:{main:'#AACF00',dim:'rgba(170,207,0,0.15)',tag:'tcal'},
+  COPACABANA:{main:'#004853',dim:'rgba(0,72,83,0.25)',tag:'tcopa'}
+};
+const PL = {PEREIRA:'Pereira',BUCARAMANGA:'Girón/Buc',CALDAS:'Caldas',COPACABANA:'Copacabana'};
+const MEDIDA = ['Pollos/hr','Kg/hr','Und/hr'];
+
+// FLOW TEMPLATES per type
+const FLOWS = {
+  PE_SIN_MAR: [{label:'Beneficio',area:'BENEFICIO',ops:['COLGADO POLLO VIVO','CORTE YUGULAR','ESCALDADO','DESPLUMADORA']},{label:'Eviscerado',area:'EVISCERADO',ops:['COLGADO DE CANAL CON VÍSCERA','REMOCIÓN PAQUETE INTESTINAL','INSPECCIÓN FINAL']},{label:'Cunas',area:'CUNAS',ops:[]},{label:'Empaque',area:'EMPAQUE',ops:['EMPACAR BOLSA']}],
+  PE_MARINADO: [{label:'Beneficio',area:'BENEFICIO',ops:['COLGADO POLLO VIVO','CORTE YUGULAR','ESCALDADO','DESPLUMADORA']},{label:'Eviscerado',area:'EVISCERADO',ops:['COLGADO DE CANAL CON VÍSCERA','REMOCIÓN PAQUETE INTESTINAL','INSPECCIÓN FINAL']},{label:'Cunas',area:'CUNAS',ops:[]},{label:'Marinadora',area:'DESPRESADO AUTOMÁTICO',ops:['MARINACIÓN'],optional:true},{label:'Empaque',area:'EMPAQUE',ops:['EMPACAR BOLSA']}],
+  PECHUGA:     [{label:'Beneficio',area:'BENEFICIO',ops:['COLGADO POLLO VIVO','CORTE YUGULAR','ESCALDADO','DESPLUMADORA']},{label:'Eviscerado',area:'EVISCERADO',ops:['COLGADO DE CANAL CON VÍSCERA','REMOCIÓN PAQUETE INTESTINAL']},{label:'Despresado',area:'DESPRESADO AUTOMÁTICO',ops:['CORTE AUTOMATICO DE PRESAS','EASY GRADER']},{label:'Empaque',area:'EMPAQUE',ops:['EMPAQUE DE PRESAS, GRANEL O BOLSAS']}],
+  VISCERA:     [{label:'Beneficio',area:'BENEFICIO',ops:['COLGADO POLLO VIVO','CORTE YUGULAR','ESCALDADO']},{label:'Eviscerado',area:'EVISCERADO',ops:['REMOCIÓN PAQUETE INTESTINAL','SEPARADOR CORAZÓN E HÍGADO']},{label:'Enfriamiento',area:'ENFRIAMIENTO DE VÍSCERA',ops:['EMPAQUE DE VISCERA - BOLSA, BANDEJA, GRANEL']}]
+};
+
+// ═══════════════ STATE ═══════════════
+const S = {
+  // Page 1
+  plant:'ALL', activePlants:new Set(['PEREIRA','BUCARAMANGA','CALDAS','COPACABANA']),
+  zone:'TODAS', shiftH:8, eff:85, tf:100, dem:10000, lc:8500, avgW:1.8, sq:'', vm:'normal', sort:'default',
+  ct:{}, co:{},
+  // Page 2
+  mCant:5000, mHrs:8, mEff:85, mW:1.8, mView:'unid', mPlants:new Set(['PEREIRA','BUCARAMANGA','CALDAS']),
+  // Page 3
+  rRef:null, rView:'unid', rHrs:8, rEff:85,
+  // Page 4
+  plnPlanta:'PEREIRA', plnTipo:'PE_SIN_MAR', plnCant:5000, plnW:1.8, plnHrs:8,
+  plnCunas:3, plnOps:1,
+  effBen:85, effEvi:85, effDes:80, effEmp:75, empRate:12,
+  renderedRows:[]
+};
+
+function initCT() {
+  for (const [p,ops] of Object.entries(PD)) {
+    for (const op of ops) {
+      const k = p+'|'+op.op;
+      S.ct[k] = op.t>0?op.t:0.05;
+      S.co[k] = op.o>0?op.o:1;
+    }
+  }
+}
+
+// ═══════════════ HELPERS ═══════════════
+const fmt = (n,d=0) => isFinite(n)&&n!==Infinity?n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d}):'N/A';
+const fmtT = m => m>0?m.toFixed(4):'0.0000';
+
+function calcOp(op,plant,effOverride) {
+  const k = plant+'|'+op.op;
+  const t = (S.ct[k]??op.t)*(S.tf/100);
+  const o = S.co[k]??op.o;
+  const eff = (effOverride??S.eff)/100;
+  const avH = o*S.shiftH;
+  const rqH = t>0&&eff>0?(S.dem*t/60)/eff:0;
+  const tp = t>0?(S.shiftH*60/t)*eff*o:Infinity;
+  const isBN = isFinite(tp)&&tp<S.dem;
+  const kgH = t>0?((60/t)*eff)*(op.m===1?1:S.avgW):0;
+  return {t,o,avH,rqH,tp,isBN,kgH};
+}
+
+// ═══════════════ MODULE NAV ═══════════════
+document.querySelectorAll('.mod-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.mod-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-'+btn.dataset.mod).classList.add('active');
+    if(btn.dataset.mod==='programacion') renderMatrix();
+    if(btn.dataset.mod==='referencia') renderRefPage();
+    if(btn.dataset.mod==='planificador') renderCunas();
+  });
+});
+
+// ═══════════════ PAGE 1 — CAPACIDAD ═══════════════
+function getAPD() {
+  if(S.plant!=='ALL') return {[S.plant]:PD[S.plant]||[]};
+  const r={};for(const p of S.activePlants) if(PD[p]) r[p]=PD[p];
+  return r;
+}
+function getAllZones() {
+  const z=new Set();
+  for(const ops of Object.values(getAPD())) for(const op of ops) z.add(op.z);
+  return ['TODAS',...Array.from(z).sort()];
+}
+function renderZones() {
+  const c=document.getElementById('zoneWrap'); c.innerHTML='';
+  getAllZones().forEach(z=>{
+    const b=document.createElement('button');
+    b.className='zpill'+(S.zone===z?' active':'');
+    b.textContent=z==='TODAS'?'Todas':z;
+    b.onclick=()=>{S.zone=z;renderZones();renderTable1();};
+    c.appendChild(b);
+  });
+}
+function renderTable1() {
+  const thead=document.getElementById('thead1'),tbody=document.getElementById('tbody1');
+  S.renderedRows=[];
+  // Head
+  thead.innerHTML=`<tr>${S.plant==='ALL'?'<th>Planta</th>':''}<th>Operación</th><th>Zona</th><th style="text-align:center">T.Est (min)</th><th style="text-align:center">Ops</th><th style="text-align:right">C.Disp</th><th style="text-align:right">C.Req</th><th style="text-align:right">Thruput</th><th style="text-align:right">Kg/H</th><th style="text-align:center">Estado</th></tr>`;
+
+  if(S.vm==='consolidated'){renderConsolidated();return;}
+
+  const data=getAPD(); let rows=[];
+  for(const[p,ops] of Object.entries(data)) {
+    for(const op of ops) {
+      if(S.zone!=='TODAS'&&op.z!==S.zone) continue;
+      if(S.sq&&!op.op.toLowerCase().includes(S.sq)&&!op.z.toLowerCase().includes(S.sq)&&!p.toLowerCase().includes(S.sq)) continue;
+      rows.push({p,op});
+    }
+  }
+  if(S.sort==='op') rows.sort((a,b)=>a.op.op.localeCompare(b.op.op));
+  else if(S.sort==='t-desc') rows.sort((a,b)=>(b.op.t||0)-(a.op.t||0));
+  else if(S.sort==='t-asc') rows.sort((a,b)=>(a.op.t||0)-(b.op.t||0));
+  else if(S.sort==='ops-desc') rows.sort((a,b)=>(S.co[b.p+'|'+b.op.op]||b.op.o)-(S.co[a.p+'|'+a.op.op]||a.op.o));
+  else if(S.sort==='bn') rows.sort((a,b)=>{const ca=calcOp(a.op,a.p),cb=calcOp(b.op,b.p);return(cb.isBN?1:0)-(ca.isBN?1:0);});
+
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="10"><div class="empty"><i class="fa-solid fa-inbox"></i>Sin operaciones</div></td></tr>';updateKPIs1([]);updateCharts1([]);return;}
+  const rd=[];
+  rows.forEach(({p,op})=>{
+    const k=p+'|'+op.op, c=calcOp(op,p);
+    rd.push({p,op,c,k});
+    const tr=document.createElement('tr'); tr.className=c.isBN?'bn':'';
+    const pc=PC[p];
+    let h='';
+    if(S.plant==='ALL') h+=`<td><span class="tag ${pc.tag}" style="font-size:9px">${PL[p]}</span></td>`;
+    h+=`<td style="max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis;font-weight:600" title="${op.op}">${op.op}</div><div style="font-size:9px;color:var(--text3)">${op.maq}</div></td>`;
+    h+=`<td><span class="tag tzone">${op.z}</span></td>`;
+    h+=`<td style="text-align:center"><input type="number" class="inum" data-k="${k}" data-f="t" step="0.001" min="0.001" value="${fmtT(S.ct[k])}">${!op.tReal?'<div style="font-size:9px;color:var(--text3)">est.</div>':''}</td>`;
+    h+=`<td style="text-align:center"><input type="number" class="inum" data-k="${k}" data-f="o" step="1" min="1" max="100" value="${S.co[k]}" style="width:48px"></td>`;
+    h+=`<td class="mono" style="text-align:right;color:var(--text2)">${fmt(c.avH,1)}</td>`;
+    h+=`<td class="mono" style="text-align:right;color:var(--text2)">${fmt(c.rqH,1)}</td>`;
+    h+=`<td class="mono" style="text-align:right;font-weight:700">${c.tp===Infinity?'∞':fmt(c.tp)}</td>`;
+    h+=`<td class="mono" style="text-align:right;color:#00657F">${c.kgH>0?fmt(c.kgH,1):'—'}</td>`;
+    h+=`<td style="text-align:center">${c.isBN?'<span class="tag tbn">⚠ Cuello</span>':'<span class="tag tok">✓ OK</span>'}</td>`;
+    tr.innerHTML=h;
+    tr.querySelectorAll('.inum').forEach(inp=>inp.addEventListener('input',e=>{
+      const v=parseFloat(e.target.value);
+      if(!isNaN(v)&&v>0){if(e.target.dataset.f==='t') S.ct[e.target.dataset.k]=v;else S.co[e.target.dataset.k]=Math.round(v);}
+      const fresh=getRD();updateKPIs1(fresh);updateCharts1(fresh);
+    }));
+    S.renderedRows.push({p,op,k,tr});
+    tbody.appendChild(tr);
+  });
+  updateKPIs1(rd); updateCharts1(rd);
+}
+function renderConsolidated() {
+  const tbody=document.getElementById('tbody1');
+  const aps=S.plant==='ALL'?[...S.activePlants]:[S.plant];
+  const thead=document.getElementById('thead1');
+  let hh='<tr><th>Operación</th><th>Zona</th>';
+  aps.forEach(p=>hh+=`<th colspan="3" style="color:${PC[p].main};text-align:center;border-left:1px solid var(--border)">${PL[p]}</th>`);
+  hh+='</tr><tr><th colspan="2"></th>';
+  aps.forEach(()=>hh+='<th style="border-left:1px solid var(--border)">T.Est</th><th>Ops</th><th>Thruput</th>');
+  thead.innerHTML=hh+'</tr>';
+
+  const opMap={};
+  for(const p of aps) for(const op of (PD[p]||[])) {
+    if(S.zone!=='TODAS'&&op.z!==S.zone) continue;
+    if(S.sq&&!op.op.toLowerCase().includes(S.sq)) continue;
+    if(!opMap[op.op]) opMap[op.op]={z:op.z,ps:{}};
+    opMap[op.op].ps[p]=op;
+  }
+  const shared=Object.entries(opMap).filter(([,v])=>Object.keys(v.ps).length>=(S.plant==='ALL'?2:1)).sort(([a],[b])=>a.localeCompare(b));
+  if(!shared.length){tbody.innerHTML='<tr><td colspan="20"><div class="empty"><i class="fa-solid fa-inbox"></i>Sin operaciones comunes</div></td></tr>';return;}
+  const rd=[];
+  shared.forEach(([opN,oe])=>{
+    const tr=document.createElement('tr');
+    const tps=aps.map(p=>oe.ps[p]?calcOp(oe.ps[p],p).tp:null).filter(v=>v&&isFinite(v));
+    const maxT=Math.max(...tps),minT=Math.min(...tps);
+    let h=`<td style="font-weight:600;max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis" title="${opN}">${opN}</div></td><td><span class="tag tzone">${oe.z}</span></td>`;
+    aps.forEach(p=>{
+      const op=oe.ps[p];
+      h+=`<td style="border-left:1px solid var(--border);text-align:center">`;
+      if(op){const c=calcOp(op,p);rd.push({p,op,c,k:p+'|'+op.op});h+=`<div class="mono" style="font-size:11px;font-weight:600">${fmtT(S.ct[p+'|'+op.op])}</div>`;}else h+='<div style="color:var(--text3);font-style:italic">—</div>';
+      h+=`</td><td style="text-align:center">`;
+      if(op) h+=`<div class="mono" style="color:var(--text2)">${S.co[p+'|'+op.op]}</div>`;else h+='—';
+      h+=`</td><td style="text-align:center">`;
+      if(op){const c=calcOp(op,p);const tp=isFinite(c.tp)?Math.round(c.tp):null;const cl=tp?tp===maxT&&maxT!==minT?'color:var(--green)':tp===minT&&maxT!==minT?'color:var(--rose)':'color:var(--amber)':'';h+=`<div class="mono" style="font-size:11px;font-weight:700;${cl}">${tp?fmt(tp):'∞'}${c.isBN?' <span style="color:var(--rose)">⚠</span>':''}</div>`;}else h+='—';
+      h+='</td>';
+    });
+    tr.innerHTML=h; tbody.appendChild(tr);
+  });
+  updateKPIs1(rd);updateCharts1(rd);
+}
+function getRD(){return S.renderedRows.map(({p,op,k})=>({p,op,c:calcOp(op,p),k}));}
+function updateKPIs1(rd){
+  const ops=rd.length,totO=rd.reduce((s,r)=>s+(S.co[r.k]||r.op.o),0);
+  const bns=rd.filter(r=>r.c.isBN).length;
+  const tps=rd.map(r=>r.c.tp).filter(t=>isFinite(t));
+  const minT=tps.length?Math.min(...tps):0;
+  const cost=totO*S.shiftH*S.lc;
+  const kgs=rd.map(r=>r.c.kgH).filter(x=>x>0);
+  const aKg=kgs.length?kgs.reduce((a,b)=>a+b,0)/kgs.length:0;
+  document.getElementById('kpiOps').textContent=fmt(ops);
+  document.getElementById('kpiOpsP').textContent=S.plant==='ALL'?'Multi-planta':PL[S.plant];
+  document.getElementById('kpiOper').textContent=fmt(totO);
+  document.getElementById('kpiBN').textContent=fmt(bns);
+  document.getElementById('kpiBNL').textContent=bns===0?'Sin cuellos detectados':'Ops. con capacidad insuficiente';
+  document.getElementById('kpiTP').textContent=fmt(minT);
+  document.getElementById('kpiCost').textContent='$'+fmt(cost);
+  document.getElementById('kpiKg').textContent=aKg>0?fmt(aKg,1):'—';
+}
+
+// charts storage
+const CH={};
+function dC(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+const CD={plugins:{legend:{display:false},tooltip:{backgroundColor:'#0b1a1d',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleFont:{family:"'Outfit',sans-serif",size:12,weight:'700'},bodyFont:{family:"'JetBrains Mono',monospace",size:11},padding:12,cornerRadius:8}}};
+
+function updateCharts1(rd){
+  // Throughput chart
+  const lim=rd.slice(0,30);
+  dC('tp');
+  const ctp=document.getElementById('chTP').getContext('2d');
+  CH.tp=new Chart(ctp,{type:'bar',data:{labels:lim.map(r=>r.op.op.length>18?r.op.op.slice(0,16)+'...':r.op.op),datasets:[{label:'Throughput',data:lim.map(r=>isFinite(r.c.tp)?Math.round(r.c.tp):S.dem*2.5),backgroundColor:lim.map(r=>r.c.isBN?'rgba(244,63,94,.8)':'rgba(0,72,83,.9)'),borderRadius:4,maxBarThickness:28},{label:'Demanda',data:lim.map(()=>S.dem),type:'line',borderColor:'rgba(255,172,0,.9)',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},...CD,scales:{x:{grid:{display:false},ticks:{font:{family:'Outfit',size:9},color:'#6b7280',maxRotation:50}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true}}}});
+  // Kg/H chart
+  const wk=rd.filter(r=>r.c.kgH>0).sort((a,b)=>b.c.kgH-a.c.kgH).slice(0,20);
+  dC('kg');
+  CH.kg=new Chart(document.getElementById('chKg').getContext('2d'),{type:'bar',data:{labels:wk.map(r=>r.op.op.length>18?r.op.op.slice(0,16)+'...':r.op.op),datasets:[{label:'Kg/H',data:wk.map(r=>Math.round(r.c.kgH)),backgroundColor:'rgba(168,85,247,.7)',borderRadius:4,maxBarThickness:28}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:300},...CD,scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true},y:{grid:{display:false},ticks:{font:{family:'Outfit',size:9},color:'#6b7280'}}}}});
+  // Cross-plant chart
+  const aps=S.plant==='ALL'?[...S.activePlants]:[S.plant];
+  if(aps.length<2){document.getElementById('crossSec').style.display='none';}else{
+    document.getElementById('crossSec').style.display='';
+    const opMap={};
+    for(const p of aps) for(const op of (PD[p]||[])){if(!opMap[op.op]) opMap[op.op]={};if(!opMap[op.op][p]) opMap[op.op][p]=S.ct[p+'|'+op.op]||op.t;}
+    const shared=Object.entries(opMap).filter(([,ps])=>{const v=aps.map(p=>ps[p]).filter(x=>x&&x>0);return v.length>=2;}).sort(([a],[b])=>a.localeCompare(b)).slice(0,20);
+    document.getElementById('crossLeg').innerHTML=aps.map(p=>`<div class="cleg-item"><div class="cleg-dot" style="background:${PC[p].main}"></div>${PL[p]}</div>`).join('');
+    dC('cross');
+    CH.cross=new Chart(document.getElementById('chCross').getContext('2d'),{type:'bar',data:{labels:shared.map(([op])=>op.length>22?op.slice(0,20)+'...':op),datasets:aps.map(p=>({label:PL[p],data:shared.map(([,ps])=>ps[p]?parseFloat(ps[p].toFixed(5)):null),backgroundColor:PC[p].dim.replace('.15','.7'),borderColor:PC[p].main,borderWidth:1,borderRadius:3,maxBarThickness:20}))},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{...CD.plugins,legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:'Outfit',size:9},color:'#6b7280',maxRotation:50}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true}}}});
+  }
+  // Zone doughnut
+  const bz={};for(const r of rd){const z=r.op.z;bz[z]=(bz[z]||0)+(S.co[r.k]||r.op.o);}
+  const pal=['rgba(245,158,11,.8)','rgba(0,101,127,.85)','rgba(255,172,0,.85)','rgba(0,72,83,.9)','rgba(170,207,0,.85)','rgba(244,63,94,.8)','rgba(99,102,241,.8)'];
+  dC('zone');
+  CH.zone=new Chart(document.getElementById('chZone').getContext('2d'),{type:'doughnut',data:{labels:Object.keys(bz),datasets:[{data:Object.values(bz),backgroundColor:pal.slice(0,Object.keys(bz).length),borderColor:'#141720',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{...CD.plugins,legend:{display:true,position:'right',labels:{color:'#9da3b4',font:{family:'Outfit',size:10},boxWidth:10,padding:8}}},cutout:'62%'}});
+  // Scatter
+  const apsU=[...new Set(rd.map(r=>r.p))];
+  dC('scat');
+  CH.scat=new Chart(document.getElementById('chScat').getContext('2d'),{type:'scatter',data:{datasets:apsU.map(p=>({label:PL[p],data:rd.filter(r=>r.p===p&&r.c.t>0&&isFinite(r.c.tp)).map(r=>({x:parseFloat(r.c.t.toFixed(4)),y:S.co[r.k]||r.op.o,label:r.op.op})),backgroundColor:PC[p].main+'cc',borderColor:PC[p].main,pointRadius:5,pointHoverRadius:7}))},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{...CD.plugins,legend:{display:true,position:'bottom',labels:{color:'#9da3b4',font:{family:'Outfit',size:10},boxWidth:8,padding:8}},tooltip:{...CD.plugins.tooltip,callbacks:{label:c=>`${c.raw.label||''}: T=${c.raw.x}min, Ops=${c.raw.y}`}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true,title:{display:true,text:'T. Estándar (min)',color:'#6b7280',font:{size:10,family:'Outfit'}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true,title:{display:true,text:'Nº Operarios',color:'#6b7280',font:{size:10,family:'Outfit'}}}}}});
+}
+
+function renderAll1(){renderZones();renderTable1();}
+
+// ═══════════════ PAGE 2 — MATRIX ═══════════════
+function renderMatrix(){
+  const aps=[...S.mPlants];
+  const opMap={};
+  for(const p of aps) for(const op of (PD[p]||[])){
+    if(!opMap[op.op]) opMap[op.op]={z:op.z,ps:{}};
+    if(!opMap[op.op].ps[p]) opMap[op.op].ps[p]=op;
+  }
+  const shared=Object.entries(opMap).filter(([,v])=>Object.keys(v.ps).length>=2).sort(([a],[b])=>a.localeCompare(b));
+
+  document.getElementById('mKpiP').textContent=aps.length;
+  document.getElementById('mKpiO').textContent=shared.length;
+
+  const thead=document.getElementById('matHead'),tbody=document.getElementById('matBody');
+  let hh=`<tr><th style="background:var(--bg3)">Planta</th>`;
+  shared.forEach(([op])=>hh+=`<th style="min-width:130px">${op.length>20?op.slice(0,18)+'...':op}</th>`);
+  thead.innerHTML=hh+'</tr>';
+
+  let totalBestTime=0; tbody.innerHTML='';
+  aps.forEach(p=>{
+    const tr=document.createElement('tr');
+    const pc=PC[p];
+    let h=`<td style="font-weight:700;white-space:nowrap"><span class="pdot ${p==='PEREIRA'?'dp-pei':p==='BUCARAMANGA'?'dp-buc':p==='CALDAS'?'dp-cal':'dp-copa'}" style="margin-right:6px"></span>${PL[p]}</td>`;
+    shared.forEach(([,oe])=>{
+      const op=oe.ps[p];
+      if(!op){h+='<td class="mcell"><div class="mcell-na">—</div></td>';return;}
+      const t=S.ct[p+'|'+op.op]||op.t;
+      const o=S.co[p+'|'+op.op]||op.o;
+      const eff=S.mEff/100;
+      const tp=t>0?(S.mHrs*60/t)*eff*o:Infinity;
+      const val=S.mView==='kg'?tp*S.mW:tp;
+      const unit=S.mView==='kg'?'kg/hr':'und/hr';
+      const ttot=isFinite(tp)&&tp>0?S.mCant/tp:null;
+      let cls='mcell-ok';
+      if(ttot!==null){if(ttot>S.mHrs*1.5) cls='mcell-bad';else if(ttot>S.mHrs) cls='mcell-warn';}
+      const tStr=ttot!==null?`${ttot.toFixed(1)}h`:'∞';
+      h+=`<td class="mcell ${cls}"><div class="mcell-val">${isFinite(val)?fmt(Math.round(val)):isFinite(tp)?'∞':'—'}</div><div class="mcell-sub">${unit} · ${tStr}</div></td>`;
+    });
+    tr.innerHTML=h; tbody.appendChild(tr);
+  });
+
+  // Update matrix KPI (avg best time)
+  document.getElementById('mKpiT').textContent='—';
+
+  // Matrix chart
+  dC('mat');
+  const datasets=aps.map(p=>({
+    label:PL[p],
+    data:shared.map(([,oe])=>{
+      const op=oe.ps[p]; if(!op) return null;
+      const t=S.ct[p+'|'+op.op]||op.t,o=S.co[p+'|'+op.op]||op.o,eff=S.mEff/100;
+      const tp=t>0?(S.mHrs*60/t)*eff*o:0;
+      return S.mView==='kg'?Math.round(tp*S.mW):Math.round(tp);
+    }),
+    backgroundColor:PC[p].dim.replace('.18','.7').replace('.15','.7').replace('.25','.6'),borderColor:PC[p].main,borderWidth:1,borderRadius:3,maxBarThickness:20
+  }));
+  document.getElementById('matLeg').innerHTML=aps.map(p=>`<div class="cleg-item"><div class="cleg-dot" style="background:${PC[p].main}"></div>${PL[p]}</div>`).join('');
+  CH.mat=new Chart(document.getElementById('chMat').getContext('2d'),{type:'bar',data:{labels:shared.map(([op])=>op.length>18?op.slice(0,16)+'...':op),datasets},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},plugins:{...CD.plugins,legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{family:'Outfit',size:9},color:'#6b7280',maxRotation:50}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true}}}});
+}
+
+// ═══════════════ PAGE 3 — REFERENCIA ═══════════════
+function initRefSel(){
+  const sel=document.getElementById('refSel'); sel.innerHTML='';
+  RD.references.forEach(r=>{
+    const o=document.createElement('option');
+    o.value=r.id; o.textContent=`${r.id} — ${r.desc}`;
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change',()=>{S.rRef=sel.value;renderRefPage();});
+  S.rRef=RD.references[0].id;
+}
+function renderRefPage(){
+  if(!S.rRef) return;
+  const ref=RD.references.find(r=>r.id===S.rRef);
+  if(!ref) return;
+  const ops=(RD.opsByRef[S.rRef]||[]);
+  const plant='PEREIRA';
+  const eff=S.rEff/100;
+
+  // Ref card
+  const tipoColor={PE:'rgba(14,165,233,.15)',PECHUGA:'rgba(168,85,247,.15)',PRESA:'rgba(249,115,22,.15)',VISCERA:'rgba(34,197,94,.15)'};
+  const tipoLabel={PE:'Pollo Entero',PECHUGA:'Pechuga',PRESA:'Presas',VISCERA:'Vísceras'};
+  document.getElementById('refCard').innerHTML=`
+    <div class="ref-card">
+      <div class="ref-id">${ref.id}</div>
+      <div class="ref-desc">${ref.desc}</div>
+      <div class="ref-tags">
+        <span class="tag" style="background:${tipoColor[ref.tipo]||'var(--bg4)'};color:var(--text)">${tipoLabel[ref.tipo]||ref.tipo}</span>
+        <span class="tag tzone">${ref.marinado?'Con Marinación':'Sin Marinar'}</span>
+        <span class="tag" style="background:var(--amber-dim);color:var(--amber)">${ref.pesoMin}–${ref.pesoMax} kg</span>
+        <span class="tag" style="background:var(--bg4);color:var(--text2)">Perfil: ${ref.perfil==='L'?'Liviano':ref.perfil==='P'?'Pesado':'Estándar'}</span>
+      </div>
+    </div>`;
+
+  // Flow
+  const flowType=ref.tipo==='PE'?(ref.marinado?'PE_MARINADO':'PE_SIN_MAR'):ref.tipo==='VISCERA'?'VISCERA':'PECHUGA';
+  const flow=FLOWS[flowType]||FLOWS.PECHUGA;
+  const fw=document.getElementById('flowWrap'); fw.innerHTML='';
+  flow.forEach((step,i)=>{
+    if(i>0){const arr=document.createElement('div');arr.className='flow-arrow';arr.innerHTML='→';fw.appendChild(arr);}
+    const d=document.createElement('div'); d.className='flow-step';
+    const box=document.createElement('div');
+    const isActive=step.area==='CUNAS'||step.ops.some(op=>ops.includes(op)||ops.some(o=>o.toLowerCase().includes(op.toLowerCase().slice(0,8))));
+    box.className='flow-box'+(isActive?' highlight':'');
+    const opData=step.ops.map(opN=>{const found=(PD[plant]||[]).find(o=>o.op===opN);return found?{op:found,t:S.ct[plant+'|'+found.op]||found.t}:null;}).filter(Boolean);
+    const avgT=opData.length?opData.reduce((s,x)=>s+x.t,0)/opData.length:0;
+    box.innerHTML=`<div class="flow-box-name">${step.label}</div><div class="flow-box-time">${avgT>0?avgT.toFixed(4)+' min/und':'—'}</div>`;
+    d.appendChild(box);
+    if(step.optional){const opt=document.createElement('div');opt.className='flow-opt';opt.textContent='opcional';d.appendChild(opt);}
+    fw.appendChild(d);
+  });
+
+  // Operations table
+  const rtHead=document.getElementById('rtHead'),rtBody=document.getElementById('rtBody');
+  rtHead.innerHTML=`<tr><th>Operación</th><th>Zona</th><th style="text-align:center">T.Est (min)</th><th style="text-align:center">Ops</th><th style="text-align:right">${S.rView==='kg'?'Kg/Hr':'Unid/Hr'}</th></tr>`;
+  rtBody.innerHTML='';
+  const chartOps=[],chartVals=[],chartColors=[];
+  ops.forEach(opName=>{
+    const found=(PD[plant]||[]).find(o=>o.op===opName);
+    if(!found) return;
+    const t=(S.ct[plant+'|'+found.op]||found.t);
+    const o=(S.co[plant+'|'+found.op]||found.o);
+    const tp=t>0?(S.rHrs*60/t)*eff*o:Infinity;
+    const val=S.rView==='kg'?tp*(found.m===1?1:S.avgW):tp;
+    const isBN=isFinite(tp)&&tp<S.dem;
+    const tr=document.createElement('tr'); tr.className=isBN?'bn':'';
+    tr.innerHTML=`<td style="font-weight:600">${found.op}</td><td><span class="tag tzone">${found.z}</span></td><td class="mono" style="text-align:center">${fmtT(t)}</td><td class="mono" style="text-align:center">${o}</td><td class="mono" style="text-align:right;font-weight:700;color:${isBN?'var(--rose)':'var(--green)'}">${isFinite(val)?fmt(Math.round(val)):'∞'}</td>`;
+    rtBody.appendChild(tr);
+    if(isFinite(val)){chartOps.push(found.op.length>20?found.op.slice(0,18)+'...':found.op);chartVals.push(Math.round(val));chartColors.push(isBN?'rgba(244,63,94,.8)':'rgba(0,101,127,.85)');}
+  });
+
+  // Chart
+  dC('ref');
+  CH.ref=new Chart(document.getElementById('chRef').getContext('2d'),{type:'bar',data:{labels:chartOps,datasets:[{label:S.rView==='kg'?'Kg/Hr':'Unid/Hr',data:chartVals,backgroundColor:chartColors,borderRadius:4,maxBarThickness:32}]},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},...CD,scales:{x:{grid:{display:false},ticks:{font:{family:'Outfit',size:9},color:'#6b7280',maxRotation:45}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true}}}});
+}
+
+// ═══════════════ PAGE 4 — PLANIFICADOR ═══════════════
+function renderCunas(){
+  const n=S.plnCunas;
+  document.getElementById('cunaBadge').textContent=n+' cunas';
+  document.getElementById('cunasFlow').textContent=S.plnTipo.includes('MARINADO')?'Marinadora → Empaque':'Directo → Empaque';
+  const g=document.getElementById('cunasGrid'); g.innerHTML='';
+  const tpByOp=calcPlanThroughput();
+  for(let i=1;i<=n;i++){
+    const d=document.createElement('div'); d.className='cuna-item';
+    d.innerHTML=`<div class="cuna-num">${i}</div><div class="cuna-label">Cuna ${i}</div><div class="cuna-label" style="color:var(--amber);margin-top:2px">${S.plnOps} op.</div>`;
+    g.appendChild(d);
+  }
+}
+
+function calcPlanThroughput(){
+  const plant=S.plnPlanta;
+  const flow=FLOWS[S.plnTipo]||FLOWS.PE_SIN_MAR;
+  const effMap={'BENEFICIO':S.effBen,'EVISCERADO':S.effEvi,'DESPRESADO AUTOMÁTICO':S.effDes,'EMPAQUE':S.effEmp,'CUNAS':S.effEmp};
+  const results=[];
+  flow.forEach(step=>{
+    if(step.area==='CUNAS'){
+      const eff=effMap.CUNAS/100;
+      const tp=(S.plnHrs*60)*(S.plnCunas*S.plnOps)*eff/1; // cunas throughput rough estimate
+      const ttot=S.plnCant/Math.max(tp,1);
+      results.push({label:'Cunas',tp:Math.round(tp),ttot,ops:S.plnCunas*S.plnOps,isBN:ttot>S.plnHrs});
+      return;
+    }
+    if(step.area==='EMPAQUE'){
+      const ops=2,eff=effMap.EMPAQUE/100;
+      const tpMin=S.empRate*ops*eff;
+      const tp=tpMin*S.plnHrs;
+      const ttot=S.plnCant/Math.max(tpMin,1)/60;
+      results.push({label:step.label,tp:Math.round(tp),ttot,ops,isBN:ttot>S.plnHrs});
+      return;
+    }
+    const eff=(effMap[step.area]||S.effBen)/100;
+    const stepOps=step.ops.map(opN=>{const f=(PD[plant]||[]).find(o=>o.op===opN);return f?{op:f,t:S.ct[plant+'|'+f.op]||f.t,o:S.co[plant+'|'+f.op]||f.o}:null;}).filter(Boolean);
+    if(!stepOps.length){results.push({label:step.label,tp:Infinity,ttot:0,ops:0,isBN:false});return;}
+    const bottleneck=stepOps.reduce((min,x)=>{const tp=(S.plnHrs*60/x.t)*eff*x.o;return tp<min.tp?{tp,o:x.o,t:x.t}:min;},{tp:Infinity,o:1,t:0});
+    const totalOps=stepOps.reduce((s,x)=>s+x.o,0);
+    const ttot=isFinite(bottleneck.tp)&&bottleneck.tp>0?S.plnCant/bottleneck.tp:0;
+    results.push({label:step.label,tp:Math.round(bottleneck.tp),ttot,ops:totalOps,isBN:ttot>S.plnHrs});
+  });
+  return results;
+}
+
+function renderPlanResult(){
+  const results=calcPlanThroughput();
+  const totalOps=results.reduce((s,r)=>s+r.ops,0);
+  const bns=results.filter(r=>r.isBN).length;
+  const bottleneckStep=results.reduce((m,r)=>r.ttot>m.ttot?r:m,{ttot:0});
+  const kgTotal=S.plnCant*S.plnW;
+
+  const fwEl=document.getElementById('planFlow');
+  let h='<div class="plan-flow">';
+  results.forEach((r,i)=>{
+    if(i>0) h+='<div class="plan-arrow">→</div>';
+    const cls=r.isBN?' bn':'';
+    h+=`<div class="plan-step${cls}">
+      <div class="plan-step-name">${r.label}</div>
+      <div class="plan-step-time">${r.ttot>0?r.ttot.toFixed(1):'∞'}</div>
+      <div class="plan-step-unit">hrs · ${fmt(r.tp)} und/turno</div>
+      <div style="font-size:9px;margin-top:4px;color:var(--text3)">${r.ops} operarios</div>
+    </div>`;
+  });
+  h+='</div>';
+  fwEl.innerHTML=h;
+
+  document.getElementById('planKpis').style.display='';
+  document.getElementById('plnKpiTime').textContent=bottleneckStep.ttot>0?bottleneckStep.ttot.toFixed(1)+' hrs':'—';
+  document.getElementById('plnKpiKg').textContent=fmt(Math.round(kgTotal))+' kg';
+  document.getElementById('plnKpiOps').textContent=fmt(totalOps);
+  document.getElementById('plnKpiBN').textContent=fmt(bns);
+
+  // Gantt-like chart
+  dC('plan');
+  CH.plan=new Chart(document.getElementById('chPlan').getContext('2d'),{type:'bar',data:{labels:results.map(r=>r.label),datasets:[{label:'Tiempo (hrs)',data:results.map(r=>parseFloat(r.ttot.toFixed(2))),backgroundColor:results.map(r=>r.isBN?'rgba(192,57,43,.85)':'rgba(0,101,127,.8)'),borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:{duration:400},...CD,scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{font:{family:'JetBrains Mono',size:10},color:'#6b7280'},beginAtZero:true,max:S.plnHrs+2,title:{display:true,text:'Horas',color:'#6b7280',font:{size:10,family:'Outfit'}}},y:{grid:{display:false},ticks:{font:{family:'Outfit',size:10},color:'#6b7280'}}}}});
+}
+
+// ═══════════════ EXPORT ═══════════════
+function exportCSV(){
+  const rd=getRD(); let csv='﻿';
+  if(S.plant==='ALL') csv+='Planta,';
+  csv+='Operación,Zona,T.Estándar(min),Operarios,C.Disp,C.Req,Throughput,Kg/H,Estado
+';
+  rd.forEach(({p,op,c,k})=>{
+    const row=[...(S.plant==='ALL'?[`"${PL[p]}"`]:[]),`"${op.op}"`,`"${op.z}"`,S.ct[k].toFixed(5),S.co[k],c.avH.toFixed(2),c.rqH.toFixed(2),isFinite(c.tp)?Math.round(c.tp):'Inf',c.kgH>0?c.kgH.toFixed(1):'',c.isBN?'Cuello':'OK'];
+    csv+=row.join(',')+'\n';
+  });
+  const b=new Blob([csv],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`capacidad_opav_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function exportFullCSV(){
+  let csv='﻿Planta,Operación,Zona,Máquina,T.Est(min),Operarios,Throughput/turno,Kg/H
+';
+  for(const[p,ops] of Object.entries(PD)) ops.forEach(op=>{const k=p+'|'+op.op;const c=calcOp(op,p);csv+=[`"${PL[p]}"`,`"${op.op}"`,`"${op.z}"`,`"${op.maq}"`,(S.ct[k]||op.t).toFixed(5),S.co[k]||op.o,isFinite(c.tp)?Math.round(c.tp):'Inf',c.kgH>0?c.kgH.toFixed(1):''].join(',')+'
+';});
+  const b=new Blob([csv],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=`todas_plantas_${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function resetAll(){
+  S.shiftH=8;S.eff=85;S.tf=100;S.dem=10000;S.lc=8500;S.avgW=1.8;S.sq='';S.zone='TODAS';S.sort='default';
+  document.getElementById('shiftI').value=8;document.getElementById('effI').value=85;document.getElementById('tfI').value=100;
+  document.getElementById('demI').value=10000;document.getElementById('costI').value=8500;document.getElementById('srchI').value='';document.getElementById('sortSel').value='default';
+  document.getElementById('shiftV').textContent='8 hrs';document.getElementById('effV').textContent='85%';document.getElementById('tfV').textContent='100%';
+  document.querySelectorAll('.wbtn').forEach(b=>b.classList.toggle('active',parseFloat(b.dataset.w)===1.8));
+  initCT(); renderAll1();
+}
+
+// ═══════════════ LISTENERS ═══════════════
+function setupListeners(){
+  // Plant tabs
+  document.querySelectorAll('.plant-tab').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.plant-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active'); S.plant=btn.dataset.plant; S.zone='TODAS';
+    document.getElementById('plantFilterCard').style.display=S.plant==='ALL'?'':'none';
+    renderAll1();
+  }));
+  // Plant checkboxes
+  document.querySelectorAll('.pchk').forEach(cb=>cb.addEventListener('change',()=>{
+    const p=cb.dataset.p; if(cb.checked) S.activePlants.add(p); else S.activePlants.delete(p); renderAll1();
+  }));
+  // Sliders page1
+  [['shiftI','shiftV','shiftH',v=>v+' hrs'],['effI','effV','eff',v=>v+'%'],['tfI','tfV','tf',v=>v+'%']].forEach(([id,vid,key,f])=>{
+    document.getElementById(id).addEventListener('input',e=>{S[key]=parseFloat(e.target.value);document.getElementById(vid).textContent=f(S[key]);renderAll1();});
+  });
+  document.getElementById('demI').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>0){S.dem=v;renderAll1();}});
+  document.getElementById('costI').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(!isNaN(v)&&v>=0){S.lc=v;updateKPIs1(getRD());}});
+  document.getElementById('srchI').addEventListener('input',e=>{S.sq=e.target.value.toLowerCase().trim();renderTable1();});
+  document.getElementById('vBtnNorm').addEventListener('click',()=>{S.vm='normal';document.getElementById('vBtnNorm').classList.add('active');document.getElementById('vBtnCons').classList.remove('active');renderTable1();});
+  document.getElementById('vBtnCons').addEventListener('click',()=>{S.vm='consolidated';document.getElementById('vBtnCons').classList.add('active');document.getElementById('vBtnNorm').classList.remove('active');renderTable1();});
+  document.getElementById('sortSel').addEventListener('change',e=>{S.sort=e.target.value;renderTable1();});
+  document.querySelectorAll('.wbtn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.wbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');S.avgW=parseFloat(btn.dataset.w);renderAll1();}));
+  document.getElementById('btnExport').addEventListener('click',exportCSV);
+  document.getElementById('btnExportFull').addEventListener('click',exportFullCSV);
+  document.getElementById('btnReset').addEventListener('click',resetAll);
+
+  // Page 2 listeners
+  document.getElementById('pCant').addEventListener('input',e=>{S.mCant=parseFloat(e.target.value)||5000;renderMatrix();});
+  document.getElementById('pHrs').addEventListener('input',e=>{S.mHrs=parseFloat(e.target.value)||8;renderMatrix();});
+  document.getElementById('pEffI').addEventListener('input',e=>{S.mEff=parseFloat(e.target.value);document.getElementById('pEffV').textContent=S.mEff+'%';renderMatrix();});
+  document.querySelectorAll('[data-pw]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('[data-pw]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');S.mW=parseFloat(btn.dataset.pw);renderMatrix();}));
+  document.getElementById('pVUnid').addEventListener('click',()=>{S.mView='unid';document.getElementById('pVUnid').classList.add('active');document.getElementById('pVKg').classList.remove('active');renderMatrix();});
+  document.getElementById('pVKg').addEventListener('click',()=>{S.mView='kg';document.getElementById('pVKg').classList.add('active');document.getElementById('pVUnid').classList.remove('active');renderMatrix();});
+  document.querySelectorAll('.mchk').forEach(cb=>cb.addEventListener('change',()=>{const p=cb.dataset.p;if(cb.checked) S.mPlants.add(p);else S.mPlants.delete(p);renderMatrix();}));
+
+  // Page 3 listeners
+  document.getElementById('rVUnid').addEventListener('click',()=>{S.rView='unid';document.getElementById('rVUnid').classList.add('active');document.getElementById('rVKg').classList.remove('active');renderRefPage();});
+  document.getElementById('rVKg').addEventListener('click',()=>{S.rView='kg';document.getElementById('rVKg').classList.add('active');document.getElementById('rVUnid').classList.remove('active');renderRefPage();});
+  document.getElementById('rHrs').addEventListener('input',e=>{S.rHrs=parseFloat(e.target.value)||8;renderRefPage();});
+  document.getElementById('rEff').addEventListener('input',e=>{S.rEff=parseFloat(e.target.value)||85;renderRefPage();});
+
+  // Page 4 listeners
+  document.getElementById('plnPlanta').addEventListener('change',e=>{S.plnPlanta=e.target.value;renderCunas();});
+  document.getElementById('plnTipo').addEventListener('change',e=>{S.plnTipo=e.target.value;document.getElementById('cunasFlow').textContent=e.target.value.includes('MARINADO')?'Marinadora → Empaque':'Directo → Empaque';renderCunas();});
+  document.getElementById('plnCant').addEventListener('input',e=>{S.plnCant=parseFloat(e.target.value)||5000;});
+  document.getElementById('plnHrs').addEventListener('input',e=>{S.plnHrs=parseFloat(e.target.value)||8;});
+  document.getElementById('plnCunasI').addEventListener('input',e=>{S.plnCunas=parseInt(e.target.value);document.getElementById('plnCunasV').textContent=S.plnCunas;renderCunas();});
+  document.getElementById('plnOpsI').addEventListener('input',e=>{S.plnOps=parseInt(e.target.value);document.getElementById('plnOpsV').textContent=S.plnOps;renderCunas();});
+  document.querySelectorAll('[data-plw]').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('[data-plw]').forEach(b=>b.classList.remove('active'));btn.classList.add('active');S.plnW=parseFloat(btn.dataset.plw);}));
+  [['effBenI','effBenV','effBen'],['effEviI','effEviV','effEvi'],['effDesI','effDesV','effDes'],['effEmpI','effEmpV','effEmp']].forEach(([id,vid,key])=>document.getElementById(id).addEventListener('input',e=>{S[key]=parseInt(e.target.value);document.getElementById(vid).textContent=S[key]+'%';}));
+  document.getElementById('empRateI').addEventListener('input',e=>{S.empRate=parseInt(e.target.value);document.getElementById('empRateV').textContent=S.empRate;});
+  document.getElementById('btnCalcPlan').addEventListener('click',renderPlanResult);
+}
+
+// ═══════════════ INIT ═══════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  initCT();
+  setupListeners();
+  document.getElementById('plantFilterCard').style.display='';
+  initRefSel();
+  renderAll1();
+});
+</script>
+</body>
+</html>
