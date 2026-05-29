@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPAV 2026 — Análisis de Capacidad Multi-Planta</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root {
+  --bg: #0c0e14;
+  --bg2: #141720;
+  --bg3: #1c1f2a;
+  --bg4: #242837;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8eaf0;
+  --text2: #9da3b4;
+  --text3: #6b7280;
+  --amber: #f59e0b;
+  --amber2: #fbbf24;
+  --amber-dim: rgba(245,158,11,0.12);
+  --amber-glow: rgba(245,158,11,0.25);
+  --teal: #0ea5e9;
+  --teal-dim: rgba(14,165,233,0.12);
+  --rose: #f43f5e;
+  --rose-dim: rgba(244,63,94,0.12);
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.10);
+  --purple: #a855f7;
+  --purple-dim: rgba(168,85,247,0.12);
+  --orange: #f97316;
+  --radius: 12px;
+  --radius-lg: 18px;
+  font-size: 13px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 60px;
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(16px);
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: var(--amber);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #000;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.logo-text { display: flex; flex-direction: column; gap: 1px; }
+.logo-name { font-weight: 700; font-size: 14px; letter-spacing: -0.3px; }
+.logo-sub { font-size: 10px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 8px;
+  font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 12px;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.btn-ghost {
+  background: transparent; color: var(--text2); border: 1px solid var(--border2);
+}
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+.btn-amber {
+  background: var(--amber); color: #000;
+}
+.btn-amber:hover { background: var(--amber2); }
+.btn:active { transform: scale(0.96); }
+
+/* ── PLANT SELECTOR BAR ── */
+.plant-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex; align-items: center; gap: 0;
+  overflow-x: auto;
+}
+.plant-tab {
+  padding: 14px 20px;
+  font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text3); cursor: pointer; border: none; background: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+}
+.plant-tab:hover { color: var(--text2); }
+.plant-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+.plant-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  display: inline-block;
+}
+.dot-pei { background: #0ea5e9; }
+.dot-buc { background: #a855f7; }
+.dot-cal { background: #f97316; }
+.dot-copa { background: #22c55e; }
+.dot-all { background: var(--amber); }
+
+/* ── MAIN LAYOUT ── */
+.main { padding: 20px 24px; max-width: 1600px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+/* ── KPI ROW ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+@media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.kpi-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.kpi-card:hover { border-color: var(--border2); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.kpi-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--kpi-glow, transparent);
+  pointer-events: none;
+}
+.kpi-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text3); margin-bottom: 8px; }
+.kpi-value { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; line-height: 1; }
+.kpi-sub { font-size: 10px; color: var(--text3); margin-top: 6px; font-weight: 500; }
+.kpi-icon {
+  position: absolute; right: 14px; top: 14px;
+  font-size: 20px; opacity: 0.15;
+}
+
+/* ── CONTENT GRID ── */
+.content-grid { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: start; }
+@media (max-width: 1024px) { .content-grid { grid-template-columns: 1fr; } }
+
+/* ── SIDE PANEL ── */
+.side-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 80px; }
+.panel-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.panel-title { font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 7px; }
+.panel-title i { color: var(--amber); font-size: 11px; }
+.panel-badge {
+  background: var(--bg3); color: var(--text2);
+  font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.panel-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+/* ── SLIDERS ── */
+.param-row { display: flex; flex-direction: column; gap: 6px; }
+.param-label { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 500; }
+.param-label span { color: var(--text2); }
+.param-val {
+  font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px;
+  color: var(--amber); background: var(--amber-dim);
+  padding: 1px 7px; border-radius: 5px; min-width: 54px; text-align: right;
+}
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 3px; background: var(--bg4);
+  border-radius: 99px; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; background: var(--amber);
+  border-radius: 50%; cursor: pointer; border: 2px solid var(--bg2);
+  box-shadow: 0 0 6px var(--amber-glow);
+}
+.param-hint { font-size: 10px; color: var(--text3); }
+
+.num-input-wrap { position: relative; }
+.num-input-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 10px; }
+input[type="number"] {
+  width: 100%; padding: 8px 10px 8px 28px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+  outline: none; transition: border-color 0.15s;
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type="number"]:focus { border-color: var(--amber); }
+.divider { border: none; border-top: 1px solid var(--border); }
+
+/* ── ZONE TABS ── */
+.zone-scroll { display: flex; flex-wrap: wrap; gap: 5px; }
+.zone-pill {
+  padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  cursor: pointer; border: 1px solid var(--border);
+  background: transparent; color: var(--text3);
+  transition: all 0.12s;
+}
+.zone-pill:hover { color: var(--text); border-color: var(--border2); }
+.zone-pill.active { background: var(--amber); color: #000; border-color: var(--amber); }
+
+/* ── AVG WEIGHT ── */
+.avg-weight-group { display: flex; gap: 5px; }
+.weight-btn {
+  flex: 1; padding: 5px; border-radius: 6px; font-size: 10px; font-weight: 700;
+  cursor: pointer; border: 1px solid var(--border);
+  background: transparent; color: var(--text3); transition: all 0.12s;
+  font-family: 'JetBrains Mono', monospace;
+}
+.weight-btn:hover { color: var(--text); border-color: var(--border2); }
+.weight-btn.active { background: var(--amber-dim); color: var(--amber); border-color: var(--amber); }
+
+/* ── RIGHT PANEL ── */
+.right-panel { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── TOOLBAR ── */
+.toolbar {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.search-wrap { position: relative; flex: 1; min-width: 160px; max-width: 280px; }
+.search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 10px; }
+.search-input {
+  width: 100%; padding: 7px 10px 7px 28px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text);
+  font-family: 'Outfit', sans-serif; font-size: 12px;
+  outline: none; transition: border-color 0.15s;
+}
+.search-input:focus { border-color: var(--amber); }
+.toolbar-sep { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+.view-toggle {
+  display: flex; gap: 2px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 8px; padding: 2px;
+}
+.view-btn {
+  padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
+  cursor: pointer; border: none; background: none; color: var(--text3);
+  transition: all 0.12s;
+}
+.view-btn.active { background: var(--bg4); color: var(--text); }
+
+/* ── TABLE ── */
+.table-wrap {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.table-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.table-container { overflow: auto; max-height: 440px; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+thead { position: sticky; top: 0; z-index: 5; }
+thead tr { background: var(--bg3); }
+th {
+  padding: 10px 12px; text-align: left;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text3); white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none;
+}
+th:hover { color: var(--text2); }
+th.sort-asc::after { content: ' ↑'; color: var(--amber); }
+th.sort-desc::after { content: ' ↓'; color: var(--amber); }
+td {
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+  vertical-align: middle; white-space: nowrap;
+}
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+tbody tr.bottleneck { background: rgba(244,63,94,0.04); }
+tbody tr:last-child td { border-bottom: none; }
+
+.tag {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 600;
+}
+.tag-zone { background: var(--bg4); color: var(--text2); }
+.tag-ok { background: var(--green-dim); color: var(--green); }
+.tag-bn { background: var(--rose-dim); color: var(--rose); }
+.tag-notime { background: var(--bg4); color: var(--text3); font-style: italic; }
+.tag-plant-pei { background: rgba(14,165,233,0.15); color: #38bdf8; }
+.tag-plant-buc { background: rgba(168,85,247,0.15); color: #c084fc; }
+.tag-plant-cal { background: rgba(249,115,22,0.15); color: #fb923c; }
+.tag-plant-copa { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+.inline-num {
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text); font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600;
+  border-radius: 6px; padding: 3px 7px;
+  width: 64px; text-align: center; outline: none;
+  transition: border-color 0.12s;
+}
+.inline-num:focus { border-color: var(--amber); }
+
+/* ── CONSOLIDATED TABLE ── */
+.cons-cell { text-align: center; padding: 6px 8px; }
+.cons-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; }
+.cons-sub { font-size: 9px; color: var(--text3); margin-top: 1px; }
+.cons-best { color: var(--green); }
+.cons-worst { color: var(--rose); }
+.cons-mid { color: var(--amber); }
+.cons-na { color: var(--text3); font-style: italic; }
+
+/* ── CHARTS SECTION ── */
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chart-card-full { grid-column: 1 / -1; }
+.chart-title { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+.chart-title i { color: var(--amber); font-size: 11px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.legend-line { width: 14px; height: 2px; flex-shrink: 0; }
+.chart-canvas-wrap { position: relative; height: 220px; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--bg2); border-top: 1px solid var(--border);
+  padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 10px; color: var(--text3); font-weight: 500;
+  margin-top: 24px;
+}
+footer span i { color: var(--rose); }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  padding: 40px; text-align: center; color: var(--text3);
+}
+.empty-state i { font-size: 28px; margin-bottom: 10px; opacity: 0.3; display: block; }
+
+/* ── MINI BADGES ── */
+.mini-badge {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.loading-pulse { animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── TOOLTIP ── */
+[data-tip] { position: relative; cursor: help; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: #1e2435; color: var(--text);
+  font-size: 10px; padding: 5px 9px; border-radius: 6px;
+  white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity 0.15s; z-index: 999;
+  border: 1px solid var(--border2);
+  font-family: 'Outfit', sans-serif;
+}
+[data-tip]:hover::after { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">B</div>
+    <div class="logo-text">
+      <div class="logo-name">Grupo BIOS — OPAV 2026</div>
+      <div class="logo-sub">Simulador de Capacidad Multi-Planta</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost" id="btnReset"><i class="fa-solid fa-rotate-left"></i> Restablecer</button>
+    <button class="btn btn-ghost" id="btnExport"><i class="fa-solid fa-file-csv"></i> CSV</button>
+    <button class="btn btn-amber" id="btnExportFull"><i class="fa-solid fa-file-excel"></i> Exportar Todo</button>
+  </div>
+</header>
+
+<!-- PLANT SELECTOR -->
+<nav class="plant-bar">
+  <button class="plant-tab active" data-plant="ALL">
+    <span class="plant-dot dot-all"></span> Todas las Plantas
+  </button>
+  <button class="plant-tab" data-plant="PEREIRA">
+    <span class="plant-dot dot-pei"></span> Pereira
+  </button>
+  <button class="plant-tab" data-plant="BUCARAMANGA">
+    <span class="plant-dot dot-buc"></span> Bucaramanga
+  </button>
+  <button class="plant-tab" data-plant="CALDAS">
+    <span class="plant-dot dot-cal"></span> Caldas
+  </button>
+  <button class="plant-tab" data-plant="COPACABANA">
+    <span class="plant-dot dot-copa"></span> Copacabana
+  </button>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- KPI GRID -->
+  <section class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card" style="--kpi-glow:linear-gradient(135deg,var(--amber-dim) 0%,transparent 60%)">
+      <i class="fa-solid fa-list-check kpi-icon" style="color:var(--amber)"></i>
+      <div class="kpi-label">Operaciones Activas</div>
+      <div class="kpi-value" id="kpiOps" style="color:var(--amber)">—</div>
+      <div class="kpi-sub" id="kpiOpsPlant">—</div>
+    </div>
+    <div class="kpi-card" style="--kpi-glow:linear-gradient(135deg,var(--teal-dim) 0%,transparent 60%)">
+      <i class="fa-solid fa-users kpi-icon" style="color:var(--teal)"></i>
+      <div class="kpi-label">Operarios Totales</div>
+      <div class="kpi-value" id="kpiOperators" style="color:var(--teal)">—</div>
+      <div class="kpi-sub">Asignados en turno</div>
+    </div>
+    <div class="kpi-card" style="--kpi-glow:linear-gradient(135deg,var(--rose-dim) 0%,transparent 60%)">
+      <i class="fa-solid fa-triangle-exclamation kpi-icon" style="color:var(--rose)"></i>
+      <div class="kpi-label">Cuellos de Botella</div>
+      <div class="kpi-value" id="kpiBN" style="color:var(--rose)">—</div>
+      <div class="kpi-sub" id="kpiBNLabel">Capacidad insuficiente</div>
+    </div>
+    <div class="kpi-card" style="--kpi-glow:linear-gradient(135deg,var(--green-dim) 0%,transparent 60%)">
+      <i class="fa-solid fa-gauge-high kpi-icon" style="color:var(--green)"></i>
+      <div class="kpi-label">Throughput Límite</div>
+      <div class="kpi-value mono" id="kpiThroughput" style="color:var(--green)">—</div>
+      <div class="kpi-sub" id="kpiThroughputOp">Op. más restrictiva</div>
+    </div>
+    <div class="kpi-card" style="--kpi-glow:linear-gradient(135deg,rgba(251,191,36,0.08) 0%,transparent 60%)">
+      <i class="fa-solid fa-money-bill-wave kpi-icon" style="color:#fbbf24"></i>
+      <div class="kpi-label">Costo Laboral / Turno</div>
+      <div class="kpi-value mono" id="kpiCost" style="color:#fbbf24;font-size:18px">—</div>
+      <div class="kpi-sub">Estimado total (COP)</div>
+    </div>
+    <div class="kpi-card" style="--kpi-glow:linear-gradient(135deg,var(--purple-dim) 0%,transparent 60%)">
+      <i class="fa-solid fa-weight-scale kpi-icon" style="color:var(--purple)"></i>
+      <div class="kpi-label">Kg / Hombre-Hora</div>
+      <div class="kpi-value mono" id="kpiKgHombre" style="color:var(--purple)">—</div>
+      <div class="kpi-sub">Productividad promedio</div>
+    </div>
+  </section>
+
+  <!-- CONTENT GRID -->
+  <div class="content-grid">
+
+    <!-- SIDE PANEL -->
+    <aside class="side-panel">
+
+      <!-- Global Parameters -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-sliders"></i> Parámetros Globales</div>
+          <span class="panel-badge" style="color:var(--green)">Live</span>
+        </div>
+        <div class="panel-body">
+          <div class="param-row">
+            <div class="param-label"><span>Duración del Turno</span><div class="param-val" id="shiftHoursVal">8 hrs</div></div>
+            <input type="range" id="shiftHoursInput" min="1" max="24" step="0.5" value="8">
+          </div>
+          <div class="param-row">
+            <div class="param-label"><span>Eficiencia de Línea</span><div class="param-val" id="efficiencyVal">85%</div></div>
+            <input type="range" id="efficiencyInput" min="10" max="100" step="1" value="85">
+          </div>
+          <div class="param-row">
+            <div class="param-label">
+              <span data-tip="100% = base | >100% más lento | <100% más rápido">Factor T. Estándar</span>
+              <div class="param-val" id="timeFactorVal">100%</div>
+            </div>
+            <input type="range" id="timeFactorInput" min="50" max="200" step="5" value="100">
+            <div class="param-hint">Ajusta globalmente todos los tiempos estándar</div>
+          </div>
+          <hr class="divider">
+          <div class="param-row">
+            <div class="param-label"><span>Demanda Objetivo / Turno</span></div>
+            <div class="num-input-wrap">
+              <i class="fa-solid fa-bullseye"></i>
+              <input type="number" id="targetDemandInput" value="10000" min="1" step="500">
+            </div>
+          </div>
+          <div class="param-row">
+            <div class="param-label"><span>Costo Operario / Hora (COP)</span></div>
+            <div class="num-input-wrap">
+              <i class="fa-solid fa-dollar-sign"></i>
+              <input type="number" id="laborCostInput" value="8500" min="0" step="100">
+            </div>
+          </div>
+          <hr class="divider">
+          <div class="param-row">
+            <div class="param-label"><span data-tip="Peso promedio pollo vivo por perfil">Perfil / Peso Avg (kg)</span></div>
+            <div class="avg-weight-group">
+              <button class="weight-btn" data-w="1.5">L<br><small>1.5kg</small></button>
+              <button class="weight-btn active" data-w="1.8">E<br><small>1.8kg</small></button>
+              <button class="weight-btn" data-w="2.1">P<br><small>2.1kg</small></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zone Filter -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-sitemap"></i> Zona / Área</div>
+        </div>
+        <div class="panel-body" style="padding: 10px 14px">
+          <div class="zone-scroll" id="zoneContainer"></div>
+        </div>
+      </div>
+
+      <!-- Plant Checkboxes (only in ALL mode) -->
+      <div class="panel-card" id="plantFilterCard">
+        <div class="panel-header">
+          <div class="panel-title"><i class="fa-solid fa-industry"></i> Plantas Activas</div>
+        </div>
+        <div class="panel-body" style="gap:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600">
+            <input type="checkbox" class="plant-chk" data-p="PEREIRA" checked> <span class="plant-dot dot-pei" style="flex-shrink:0"></span> Pereira
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600">
+            <input type="checkbox" class="plant-chk" data-p="BUCARAMANGA" checked> <span class="plant-dot dot-buc" style="flex-shrink:0"></span> Bucaramanga
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600">
+            <input type="checkbox" class="plant-chk" data-p="CALDAS" checked> <span class="plant-dot dot-cal" style="flex-shrink:0"></span> Caldas
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;font-weight:600">
+            <input type="checkbox" class="plant-chk" data-p="COPACABANA" checked> <span class="plant-dot dot-copa" style="flex-shrink:0"></span> Copacabana
+          </label>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" class="search-input" id="searchInput" placeholder="Buscar operación, zona...">
+        </div>
+        <div class="toolbar-sep"></div>
+        <div class="view-toggle">
+          <button class="view-btn active" id="btnViewNormal">Por Planta</button>
+          <button class="view-btn" id="btnViewConsolidated">Consolidado</button>
+        </div>
+        <div class="toolbar-sep"></div>
+        <span style="font-size:10px;color:var(--text3)">Ordenar:</span>
+        <select id="sortSelect" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:6px;font-size:11px;outline:none;cursor:pointer">
+          <option value="default">Default</option>
+          <option value="operation">Operación A-Z</option>
+          <option value="time-desc">T. Estándar ↓</option>
+          <option value="time-asc">T. Estándar ↑</option>
+          <option value="operators-desc">Operarios ↓</option>
+          <option value="bottleneck">Cuellos primero</option>
+        </select>
+      </div>
+
+      <!-- Operations Table -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="panel-title"><i class="fa-solid fa-table-cells"></i> Tabla de Capacidad Operativa</div>
+          <span style="font-size:10px;color:var(--text3)">T.Estándar y Operarios son editables</span>
+        </div>
+        <div class="table-container" id="tableContainer">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="charts-grid">
+
+        <!-- Chart 1: Throughput vs Demand -->
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-chart-column"></i> Throughput vs Demanda</div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Suficiente</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--rose)"></div> Cuello Botella</div>
+            <div class="legend-item"><div class="legend-line" style="background:var(--amber);border-top:2px dashed var(--amber)"></div> Demanda</div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="chartThroughput"></canvas></div>
+        </div>
+
+        <!-- Chart 2: Kg/Hombre by operation -->
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-weight-scale"></i> Kg/Hombre-Hora por Operación</div>
+          <div class="chart-legend">
+            <div class="legend-item" style="color:var(--text3);font-size:10px">Productividad estimada por operario</div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="chartKgHombre"></canvas></div>
+        </div>
+
+        <!-- Chart 3: Cross-Plant Time Comparison (full width) -->
+        <div class="chart-card chart-card-full" id="crossPlantSection">
+          <div class="chart-title"><i class="fa-solid fa-arrows-left-right"></i> Comparativa Multi-Planta — T. Estándar (min)</div>
+          <div class="chart-legend" id="crossLegend"></div>
+          <div class="chart-canvas-wrap" style="height:260px"><canvas id="chartCrossPlant"></canvas></div>
+        </div>
+
+        <!-- Chart 4: Operators by Zone -->
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-chart-pie"></i> Operarios por Zona</div>
+          <div class="chart-canvas-wrap"><canvas id="chartByZone"></canvas></div>
+        </div>
+
+        <!-- Chart 5: Scatter T.Estándar vs Operarios -->
+        <div class="chart-card">
+          <div class="chart-title"><i class="fa-solid fa-chart-scatter"></i> Complejidad vs. Dotación</div>
+          <div class="chart-legend">
+            <div class="legend-item" style="color:var(--text3);font-size:10px">Cada punto = una operación</div>
+          </div>
+          <div class="chart-canvas-wrap"><canvas id="chartScatter"></canvas></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <span>© 2026 Grupo BIOS S.A.S — OPAV · Simulador de Capacidad Multi-Planta</span>
+  <span>Desarrollado con <i class="fa-solid fa-heart"></i> por Antigravity</span>
+</footer>
+
+<script>
+// ── EMBEDDED PLANT DATA ──
+const PLANTS_DATA = {"PEREIRA":[{"op":"CARGUE DE HUACALES","z":"BENEFICIO","t":0.0874,"tReal":0.0874,"o":2,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE POLLO VIVO","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO POLLO VIVO","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":9,"m":0,"maq":"MANUAL"},{"op":"CORTADORA CLOACA","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA COCOROTA","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE COCOROTAS","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTE DE PATAS","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"MANUAL"},{"op":"CORTE YUGULAR","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"KILLER ITA"},{"op":"DESAPILAR HUACALES HACIA BANDA","z":"BENEFICIO","t":0.09154,"tReal":0.09154,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESCARGAR HUACALES","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESCARGUE DE CAMIÓN (HALAR HUACALES A LA BASCULA)","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESCARGUE DE HUACALES","z":"BENEFICIO","t":0.09154,"tReal":0.09154,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESCOLGADOR DE PATAS","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESPLUMADORA","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"DESPLUMADORA KASCSA"},{"op":"ESCALDADO","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"ESCALDADORA CANTREL"},{"op":"ESCALDADO DE POLLO ENTERO","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ESCALDADORA DE COCOROTAS","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ESCALDADORA DE PATAS CANTREL","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"INSENSIBILIZADO","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"INSENSIBILIZADOR"},{"op":"INSENSIBILIZADO DE POLLO VIVO","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"PELADORA DE CORVEJON","z":"BENEFICIO","t":0.43868,"tReal":0.43868,"o":1,"m":0,"maq":"BANDA IQF"},{"op":"PELADORA DE PATAS B/MANGA","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"PESAJE MANUAL","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"REMOCIÓN GRANULOMA PLANTAR","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"REPASADOR","z":"BENEFICIO","t":0.00903,"tReal":0.00903,"o":3,"m":0,"maq":"MANUAL"},{"op":"REPASADORA","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TRANSPORTE","z":"BENEFICIO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TUMBADORA DE PATAS","z":"BENEFICIO","t":1.26667,"tReal":1.26667,"o":1,"m":0,"maq":"MESA DE EMPAQUE"},{"op":"CLASIFICACIÓN DE POLLO POR PESO","z":"CLASIFICACIÓN POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.MAR.DESHUESADO","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.MAR.SIN.PECHUGA","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.PECHUGA.MAR","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.PECHUGA.SINMARINAR","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.SELLADO.MARINADO","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CONGELAMIENTO INDIVIDUAL","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTE AUTOMATICO DE PRESAS","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"EASY GRADER","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"EMPAQUE DE PRESAS, GRANEL O BOLSAS","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"INYECCIÓN Y ESCURRIDO DE PRESAS","z":"DESPRESADO AUTOMÁTICO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENFRIAMIENTO Y DESINFECCIÓN POLLO ENTERO","z":"ENFRIAMENTO DE CANAL P.E","t":0.05,"tReal":0,"o":1,"m":0,"maq":"CHILLERS CANAL"},{"op":"EMPAQUE DE VISCERA - BOLSA, BANDEJA, GRANEL","z":"ENFRIAMIENTO DE VÍSCERA","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CLASIFICACIÓN DE POLLO POR PESO","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE CANAL CON VÍSCERA","z":"EVISCERADO","t":0.05281,"tReal":0.05281,"o":4,"m":0,"maq":"MANUAL"},{"op":"CORTADORA CLOACA","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE ABDOMEN","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE PESCUEZOS","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"MANUAL"},{"op":"CORTE ABDOMINAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":1,"maq":"MANUAL"},{"op":"EXTRACCIÓN DE BUCHE Y TRAQUEA","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"EXTRACTORA DE PULMONES","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"INSPECCIÓN DEL CANAL POLLO ENTERO","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":2,"m":0,"maq":"MANUAL"},{"op":"INSPECCIÓN FINAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":4,"m":0,"maq":"MANUAL"},{"op":"LAVADO INTERNO Y EXTERNO","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"MAESTRO EVISCERADOR","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"PULIDO MANUAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"PULIDO POLLO ENTERO","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"REMOCIÓN DE HIGADO Y CORAZON","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":1,"m":0,"maq":"MANUAL"},{"op":"REMOCIÓN PAQUETE INTESTINAL","z":"EVISCERADO","t":0.00903,"tReal":0.00903,"o":8,"m":0,"maq":"MANUAL"},{"op":"REPASADOR DE MOLLEJAS","z":"EVISCERADO","t":0.05466,"tReal":0.05466,"o":3,"m":0,"maq":"MANUAL"},{"op":"SEPARADOR CORAZÓN E HÍGADO","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TOLERANCIA CERO","z":"EVISCERADO","t":0.28333,"tReal":0.28333,"o":1,"m":0,"maq":"MESA DE EMPAQUE"},{"op":"VERIFICADOR DE HIELES","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.EMP. GRANEL/BOLSA","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.EMPACAR","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"C.EMPACAR Y S","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DHS - 01 (P","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"GF - 01 (PER)","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"GF - 02 (PER)","z":"GENERAL","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"CLASIFICACIÓN POLLO ENTERO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"LINEA DE PESAJE"},{"op":"COLGADO DE CANAL POLLO ENTERO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":6,"m":1,"maq":"MANUAL"},{"op":"EMPACAR BOLSA","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"MANUAL"},{"op":"MARINACIÓN","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"}],"BUCARAMANGA":[{"op":"COLGADO DE POLLO VIVO","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":6,"m":0,"maq":"MANUAL"},{"op":"CORTADORA DE COCOROTAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"CORTADORA DE COCOROT"},{"op":"CORTE DE PATAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"CORTADORA DE PATAS S"},{"op":"CORTE YUGULAR","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":2,"m":0,"maq":"KILLER ITA"},{"op":"DESCARGAR HUACALES","z":"BENEFICIO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"ELEVADOR DE HUACALES"},{"op":"DESCARGUE DE CAMIÓN (HALAR HUACALES A LA BASCULA)","z":"BENEFICIO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESPLUMADORA","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"DESPLUMADORA KASCSA"},{"op":"ESCALDADO DE POLLO ENTERO","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"ESCALDADORA CANTREL"},{"op":"ESCALDADORA DE COCOROTAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"ESCALDADORA DE COCOR"},{"op":"ESCALDADORA DE PATAS CANTREL","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"ESCALDADORA DE PATAS"},{"op":"INSENSIBILIZADO DE POLLO VIVO","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"INSENSIBILIZADOR"},{"op":"PELADORA DE CORVEJON","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"PELADORA DE CORVEJON"},{"op":"PELADORA DE PATAS B/MANGA","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"PELADORA DE PATAS B/"},{"op":"REMOCIÓN GRANULOMA PLANTAR","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":4,"m":2,"maq":"MANUAL"},{"op":"REPASADORA","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"REPASADORA"},{"op":"TUMBADORA DE PATAS","z":"BENEFICIO","t":0.01045,"tReal":0.01045,"o":1,"m":0,"maq":"TUMBADOR DE PATAS SE"},{"op":"BANDA","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"BANDA DE PECHUGA"},{"op":"DESPRESADO AUTOMÁTICO","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"LINEA DE DESPRESADO "},{"op":"EMPACAR BOLSA","z":"DESPRESADO","t":0.491,"tReal":0.491,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A CUARTOS","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"BANDA TRANSPORTADORA"},{"op":"ESCURRIDO","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"ESCURRIDOR"},{"op":"MARINACIÓN","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MARINADORA HENNEKEN "},{"op":"TRANSPORTE","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"TRANSPORTE BANDA","z":"DESPRESADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENFRIAMIENTO Y DESINFECCIÓN POLLO ENTERO","z":"ENFRIAMENTO DE CANAL P.E","t":0.05,"tReal":0,"o":1,"m":1,"maq":"CHILLER ITA"},{"op":"COLGADO DE CANAL CON VÍSCERA","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":3,"m":1,"maq":"MANUAL"},{"op":"CORTADORA CLOACA","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"CORTADORA DE CLOCACA"},{"op":"CORTADORA DE ABDOMEN","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"CORTADORA DE ABDOMEN"},{"op":"CORTADORA DE PESCUEZOS","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"QUEBRADORA DE CUELLO"},{"op":"EXTRACCIÓN DE BUCHE Y TRAQUEA","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"EXTRACTORA  BUCHE Y "},{"op":"EXTRACTORA DE PULMONES","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"EXTRACTORA DE PULMON"},{"op":"INSPECCIÓN DEL CANAL POLLO ENTERO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":2,"m":1,"maq":"MANUAL"},{"op":"INSPECCIÓN FINAL","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":3,"m":1,"maq":"MANUAL"},{"op":"LAVADO INTERNO Y EXTERNO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":2,"maq":"LAVADORA INTERNA / E"},{"op":"MAESTRO EVISCERADOR","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"EVISCERADOR LINCO"},{"op":"PULIDO POLLO ENTERO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":2,"maq":"MANUAL"},{"op":"REMOCIÓN DE HIGADO Y CORAZON","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":5,"m":1,"maq":"MANUAL"},{"op":"REMOCIÓN PAQUETE INTESTINAL","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":6,"m":1,"maq":"MANUAL"},{"op":"REPASADOR DE MOLLEJAS","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":2,"m":2,"maq":"PROCESADORA DE MOLLE"},{"op":"SEPARADOR CORAZÓN E HÍGADO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":3,"m":1,"maq":"MANUAL"},{"op":"TOLERANCIA CERO","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":2,"maq":"MANUAL"},{"op":"VERIFICADOR DE HIELES","z":"EVISCERADO","t":0.00959,"tReal":0.00959,"o":1,"m":1,"maq":"MANUAL"},{"op":"COLGADO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE CANAL POLLO ENTERO","z":"POLLO ENTERO","t":0.05,"tReal":0,"o":2,"m":0,"maq":"MANUAL"},{"op":"DETECTORA DE METALES","z":"POLLO ENTERO","t":0.1,"tReal":0.1,"o":1,"m":0,"maq":"METTLER TOLEDO 1500"},{"op":"EMPACAR BOLSA","z":"POLLO ENTERO","t":2.036,"tReal":2.036,"o":1,"m":0,"maq":"MANUAL"},{"op":"EMPAQUE FUNDA","z":"POLLO ENTERO","t":0.96886,"tReal":0.96886,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A CUARTOS","z":"POLLO ENTERO","t":0.48012,"tReal":0.48012,"o":1,"m":0,"maq":"MANUAL"},{"op":"ESCURRIDO","z":"POLLO ENTERO","t":0.4005,"tReal":0.4005,"o":1,"m":0,"maq":"ESCURRIDOR"},{"op":"MARINACIÓN","z":"POLLO ENTERO","t":0.715,"tReal":0.715,"o":1,"m":0,"maq":"MARINADORA HENNEKEN "},{"op":"PESAJE MANUAL","z":"POLLO ENTERO","t":0.341,"tReal":0.341,"o":1,"m":0,"maq":"ISHIDA UNT 3"},{"op":"SELECCIÓN DE POLLO ENTERO","z":"POLLO ENTERO","t":0.09333,"tReal":0.09333,"o":1,"m":0,"maq":"EASY GRADER 1"},{"op":"SELLADO AUTOMÁTICO BOLSA","z":"POLLO ENTERO","t":0.595,"tReal":0.595,"o":1,"m":0,"maq":"SELLADORA TERMICA GO"},{"op":"TRANSPORTE","z":"POLLO ENTERO","t":0.571,"tReal":0.571,"o":1,"m":0,"maq":"MANUAL"},{"op":"TRANSPORTE BANDA","z":"POLLO ENTERO","t":0.22,"tReal":0.22,"o":1,"m":0,"maq":"MARINADORA HENNEKEN "}],"CALDAS":[{"op":"ABRIR TAPA DE HUACALES","z":"BENEFICIO","t":0.98,"tReal":0.98,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADO DE POLLO EN PIE","z":"BENEFICIO","t":1.176,"tReal":1.176,"o":10,"m":0,"maq":"MANUAL"},{"op":"CORTADORA COCOROTA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"CORTADORA DE COCOROT"},{"op":"CORTADORA PATAS","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"CORTADORA DE PATAS"},{"op":"CORTE YUGULAR","z":"BENEFICIO","t":2.68,"tReal":2.68,"o":1,"m":0,"maq":"KILLER"},{"op":"DESAPILAR HUACALES HACIA BANDA","z":"BENEFICIO","t":1.176,"tReal":1.176,"o":3,"m":0,"maq":"MANUAL"},{"op":"DESCARGAR CAMIÓN (HALADOR)","z":"BENEFICIO","t":0.588,"tReal":0.588,"o":2,"m":0,"maq":"MANUAL"},{"op":"DESCOLGADOR DE PATAS","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"DESCOLGADOR DE PATAS"},{"op":"DESPLUMADORA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"DESPLUMADORA KACSA D"},{"op":"ESCALDADO POLLO CON VISCERAS","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"ESCALDADORA"},{"op":"ESCALDADO Y LIMPIEZA DE PATA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"ESCALDADORA DE PATAS"},{"op":"INSENSIBILIZADO","z":"BENEFICIO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"INSENSIBILIZADOR"},{"op":"LÍNEA BENEFICIO","z":"BENEFICIO","t":1.0,"tReal":1.0,"o":1,"m":0,"maq":"LÍNEA DE BENEFICIO"},{"op":"PELADORA DE PATAS","z":"BENEFICIO","t":2.45667,"tReal":2.45667,"o":1,"m":0,"maq":"PELADORA DE PATAS"},{"op":"RECOLGADOR","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"MANUAL"},{"op":"REPASADORA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":1,"m":0,"maq":"DESPLUMADORA CP80"},{"op":"RETIRAR PLUMA","z":"BENEFICIO","t":2.40753,"tReal":2.40753,"o":2,"m":0,"maq":"MANUAL"},{"op":"VALIDACIÓN KILER","z":"BENEFICIO","t":2.68,"tReal":2.68,"o":1,"m":0,"maq":"MANUAL"},{"op":"COLGADORES CAMBIO DE LINEA","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":5,"m":0,"maq":"LÍNEA DE EVISCERADO"},{"op":"CORTADO DE ABDOMEN","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"CORTADORA DE ABDOMEN"},{"op":"CORTADO DE CLOACAS","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"CORTADORA DE CLOACAS"},{"op":"CORTADOR DE HIGADO Y CORAZÓN","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"CORTADOR DE HIGADO Y"},{"op":"CORTADORA DE CUELLOS","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"CORTADORA DE CUELLOS"},{"op":"EVISCERADOR","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MAESTRO EVISCERADOR"},{"op":"EVISCERADOR MANUAL","z":"EVISCERADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"LÍNEA DE EVISCERADO"},{"op":"EXTRACTOR DE PULMONES","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"EXTRACTOR DE PULMONE"},{"op":"EXTRACTORA DE BUCHES Y TRAQUEA (CROOPER)","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"EXTRACTORA DE BUCHES"},{"op":"LAVADORA INTERNA/EXTERNA","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"LAVADORA INTERNA/EXT"},{"op":"LÍNEA EVISCERACIÓN","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"LÍNEA DE EVISCERADO"},{"op":"PROCESADO DE MOLLEJAS USINOX PMU-7000","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"PROCESADORA DE MOLLE"},{"op":"REPASADO DE MOLLEJAS TEKPRO PMP 8R","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":2,"m":0,"maq":"REPASADORA DE MOLLEJ"},{"op":"RETIRO PRODUCTO LINEA INSPECCIÓN","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"MANUAL"},{"op":"SEPARADO DE HIGADOS Y CORAZONES Y TRANSPORTADOR PLANO","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":6,"m":0,"maq":"SEPARADOR DE HIGADOS"},{"op":"TOLERANCIA CERO","z":"EVISCERADO","t":1.2,"tReal":1.2,"o":1,"m":0,"maq":"TOLERANCIA CERO"},{"op":"TRANSPORTADO DE BANDEJAS","z":"EVISCERADO","t":1.176,"tReal":1.176,"o":1,"m":0,"maq":"TRANSPORTADOR DE BAN"},{"op":"DESCARGAR CAMIÓN (HALADOR)","z":"GENERAL","t":0.588,"tReal":0.588,"o":2,"m":0,"maq":"MANUAL"}],"COPACABANA":[{"op":"COCCIÓN","z":"COCCIÓN","t":28.506,"tReal":28.506,"o":1,"m":0,"maq":"HORNO TALSA 1"},{"op":"DUCHADO","z":"DUCHADO","t":4.53289,"tReal":4.53289,"o":2,"m":0,"maq":"DUCHAS"},{"op":"ENCANASTADO","z":"DUCHADO","t":6.23145,"tReal":6.23145,"o":2,"m":0,"maq":"MANUAL"},{"op":"GOLPE DE FRÍO","z":"DUCHADO","t":96.49399,"tReal":96.49399,"o":1,"m":0,"maq":"TÚNEL 1"},{"op":"LIBERACIÓN DE CALIDAD","z":"DUCHADO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESINFECCIÓN ASPERSIÓN","z":"EMPAQUE","t":1.01,"tReal":1.01,"o":1,"m":0,"maq":"MANUAL"},{"op":"DESMECHADO","z":"EMPAQUE","t":12.499,"tReal":12.499,"o":1,"m":0,"maq":"MANUAL"},{"op":"EMBALAJE","z":"EMPAQUE","t":7.17536,"tReal":7.17536,"o":4,"m":0,"maq":"MANUAL"},{"op":"EMPAQUE BOLSA","z":"EMPAQUE","t":10.50028,"tReal":10.50028,"o":8,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A LOGÍSTICA","z":"EMPAQUE","t":2.12015,"tReal":2.12015,"o":1,"m":0,"maq":"MANUAL"},{"op":"LIBERACIÓN DE CALIDAD","z":"EMPAQUE","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"LOTEADO","z":"EMPAQUE","t":4.29557,"tReal":4.29557,"o":2,"m":0,"maq":"CODIFICADORA VIDEOJE"},{"op":"PESAJE MANUAL","z":"EMPAQUE","t":2.0068,"tReal":2.0068,"o":4,"m":0,"maq":"MANUAL"},{"op":"PORCIONADO AUTOMÁTICO","z":"EMPAQUE","t":2.06945,"tReal":2.06945,"o":2,"m":0,"maq":"PORCIONADORA VEMAG"},{"op":"SELLADO MANUAL BOLSA","z":"EMPAQUE","t":8.02837,"tReal":8.02837,"o":2,"m":0,"maq":"ENCINTADORA"},{"op":"TAJADO","z":"EMPAQUE","t":0.05,"tReal":0,"o":1,"m":0,"maq":"TAJADORA WEBER"},{"op":"TERMOFORMADO","z":"EMPAQUE","t":18.77,"tReal":18.77,"o":3,"m":0,"maq":"TERMOFORMADORA VARIO"},{"op":"TRANSPORTE","z":"EMPAQUE","t":1.65109,"tReal":1.65109,"o":1,"m":0,"maq":"MANUAL"},{"op":"TROCEADO","z":"EMPAQUE","t":14.41986,"tReal":14.41986,"o":1,"m":0,"maq":"MANUAL"},{"op":"COCCIÓN","z":"PROCESO","t":23.14531,"tReal":23.14531,"o":1,"m":0,"maq":"HORNO UNOX"},{"op":"CONGELACIÓN","z":"PROCESO","t":184.28757,"tReal":184.28757,"o":1,"m":0,"maq":"TÚNEL 5"},{"op":"DESEMPARRILLADO","z":"PROCESO","t":7.23408,"tReal":7.23408,"o":1,"m":0,"maq":"MANUAL"},{"op":"DOSIFICACIÓN","z":"PROCESO","t":8.3831,"tReal":8.3831,"o":4,"m":0,"maq":"MANUAL"},{"op":"EMBUTIDO","z":"PROCESO","t":4.32892,"tReal":4.32892,"o":5,"m":0,"maq":"EMBUTIDORA VEMAG HP1"},{"op":"EMPARRILLADO","z":"PROCESO","t":23.21905,"tReal":23.21905,"o":1,"m":0,"maq":"MANUAL"},{"op":"ENTREGA A LOGÍSTICA","z":"PROCESO","t":0.05,"tReal":0,"o":1,"m":0,"maq":"MANUAL"},{"op":"LLENADO DE HORNO","z":"PROCESO","t":6.018,"tReal":6.018,"o":1,"m":0,"maq":"MANUAL"},{"op":"MEZCLADO","z":"PROCESO","t":4.49935,"tReal":4.49935,"o":1,"m":0,"maq":"MEZCLADOR WOLFKING"},{"op":"MOLINO","z":"PROCESO","t":6.12555,"tReal":6.12555,"o":1,"m":0,"maq":"MOLINO WOLFKING"},{"op":"PESAJE MANUAL","z":"PROCESO","t":1.53914,"tReal":1.53914,"o":1,"m":0,"maq":"MANUAL"},{"op":"TOMBLEADO","z":"PROCESO","t":13.714,"tReal":13.714,"o":1,"m":0,"maq":"MANUAL"}]};
+
+const PLANT_COLORS = {
+  PEREIRA: { main:'#0ea5e9', dim:'rgba(14,165,233,0.15)', tag:'tag-plant-pei' },
+  BUCARAMANGA: { main:'#a855f7', dim:'rgba(168,85,247,0.15)', tag:'tag-plant-buc' },
+  CALDAS: { main:'#f97316', dim:'rgba(249,115,22,0.15)', tag:'tag-plant-cal' },
+  COPACABANA: { main:'#22c55e', dim:'rgba(34,197,94,0.15)', tag:'tag-plant-copa' }
+};
+
+const PLANT_LABELS = {
+  PEREIRA:'Pereira', BUCARAMANGA:'Bucaramanga', CALDAS:'Caldas', COPACABANA:'Copacabana'
+};
+
+const MEDIDA_LABELS = ['Pollos/hr','Kg/hr','Und/hr'];
+
+// ── STATE ──
+const S = {
+  selectedPlant: 'ALL',
+  activePlants: new Set(['PEREIRA','BUCARAMANGA','CALDAS','COPACABANA']),
+  selectedZone: 'TODAS',
+  shiftHours: 8,
+  efficiency: 85,
+  timeFactor: 100,
+  targetDemand: 10000,
+  laborCost: 8500,
+  avgWeight: 1.8,
+  searchQuery: '',
+  viewMode: 'normal', // 'normal' | 'consolidated'
+  sortBy: 'default',
+  customTimes: {},   // key: plant+op => custom time min
+  customOps: {},     // key: plant+op => custom operators
+  renderedRows: []
+};
+
+// Initialize custom times/ops from data
+function initCustoms() {
+  for (const [plant, ops] of Object.entries(PLANTS_DATA)) {
+    for (const op of ops) {
+      const k = plant + '|' + op.op;
+      S.customTimes[k] = op.t > 0 ? op.t : 0.05;
+      S.customOps[k] = op.o > 0 ? op.o : 1;
+    }
+  }
+}
+
+// ── HELPERS ──
+function fmt(n, d=0) { return isFinite(n) && n !== Infinity ? n.toLocaleString('es-CO', {minimumFractionDigits:d,maximumFractionDigits:d}) : 'N/A'; }
+function fmtMin(m) { return m > 0 ? m.toFixed(4) : '0.0000'; }
+
+function getActivePlantData() {
+  if (S.selectedPlant !== 'ALL') {
+    return { [S.selectedPlant]: PLANTS_DATA[S.selectedPlant] || [] };
+  }
+  const result = {};
+  for (const p of S.activePlants) {
+    if (PLANTS_DATA[p]) result[p] = PLANTS_DATA[p];
+  }
+  return result;
+}
+
+function getAllZones() {
+  const zones = new Set();
+  const data = getActivePlantData();
+  for (const ops of Object.values(data)) {
+    for (const op of ops) zones.add(op.z);
+  }
+  return ['TODAS', ...Array.from(zones).sort()];
+}
+
+function calcOp(op, plant) {
+  const k = plant + '|' + op.op;
+  const baseTimeMin = S.customTimes[k] ?? op.t;
+  const actualTimeMin = baseTimeMin * (S.timeFactor / 100);
+  const operators = S.customOps[k] ?? op.o;
+  const eff = S.efficiency / 100;
+  const availHrs = operators * S.shiftHours;
+  const reqHrs = actualTimeMin > 0 && eff > 0 ? (S.targetDemand * actualTimeMin / 60) / eff : 0;
+  const throughput = actualTimeMin > 0 ? (S.shiftHours * 60 / actualTimeMin) * eff * operators : Infinity;
+  const isBottleneck = isFinite(throughput) && throughput < S.targetDemand;
+
+  // kg/hombre calculation
+  let kgPerManHr = 0;
+  if (actualTimeMin > 0) {
+    const ratePerHr = (60 / actualTimeMin) * eff; // units per man per hour
+    if (op.m === 1) { // PESO/HORA — already kg
+      kgPerManHr = ratePerHr;
+    } else { // POLLO/HORA or UNIDADES/HORA — convert via avgWeight
+      kgPerManHr = ratePerHr * S.avgWeight;
+    }
+  }
+
+  return { actualTimeMin, operators, availHrs, reqHrs, throughput, isBottleneck, kgPerManHr };
+}
+
+// ── ZONE TABS ──
+function renderZoneTabs() {
+  const container = document.getElementById('zoneContainer');
+  container.innerHTML = '';
+  const zones = getAllZones();
+  zones.forEach(z => {
+    const btn = document.createElement('button');
+    btn.className = 'zone-pill' + (S.selectedZone === z ? ' active' : '');
+    btn.textContent = z === 'TODAS' ? 'Todas' : z;
+    btn.addEventListener('click', () => {
+      S.selectedZone = z;
+      renderZoneTabs();
+      renderTable();
+    });
+    container.appendChild(btn);
+  });
+}
+
+// ── TABLE HEADERS ──
+function renderTableHead() {
+  const head = document.getElementById('tableHead');
+  if (S.viewMode === 'consolidated') {
+    const activePlants = S.selectedPlant === 'ALL' ? [...S.activePlants] : [S.selectedPlant];
+    let html = '<tr><th>Operación</th><th>Zona</th>';
+    for (const p of activePlants) {
+      const c = PLANT_COLORS[p];
+      html += `<th colspan="3" style="color:${c.main};text-align:center;border-left:1px solid var(--border)">${PLANT_LABELS[p]}</th>`;
+    }
+    html += '</tr><tr><th colspan="2"></th>';
+    for (const p of activePlants) {
+      html += `<th style="border-left:1px solid var(--border)">T.Est (min)</th><th>Ops</th><th>Thruput</th>`;
+    }
+    html += '</tr>';
+    head.innerHTML = html;
+  } else {
+    head.innerHTML = `<tr>
+      ${S.selectedPlant==='ALL'?'<th>Planta</th>':''}
+      <th>Operación</th>
+      <th>Zona</th>
+      <th style="text-align:center">T.Est (min)</th>
+      <th style="text-align:center">Ops</th>
+      <th style="text-align:right" data-tip="Cap. Disponible (Hrs-Hombre)">C.Disp</th>
+      <th style="text-align:right" data-tip="Cap. Requerida (Hrs-Hombre)">C.Req</th>
+      <th style="text-align:right" data-tip="Throughput teórico en turno">Thruput</th>
+      <th style="text-align:right" data-tip="Kg por Hombre-Hora estimado">Kg/H</th>
+      <th style="text-align:center">Estado</th>
+    </tr>`;
+  }
+}
+
+// ── NORMAL TABLE ──
+function renderNormalTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  S.renderedRows = [];
+
+  const data = getActivePlantData();
+  let rows = [];
+
+  for (const [plant, ops] of Object.entries(data)) {
+    for (const op of ops) {
+      // Zone filter
+      if (S.selectedZone !== 'TODAS' && op.z !== S.selectedZone) continue;
+      // Search
+      if (S.searchQuery) {
+        const q = S.searchQuery;
+        if (!op.op.toLowerCase().includes(q) && !op.z.toLowerCase().includes(q) && !plant.toLowerCase().includes(q)) continue;
+      }
+      rows.push({ plant, op });
+    }
+  }
+
+  // Sort
+  if (S.sortBy === 'operation') rows.sort((a,b) => a.op.op.localeCompare(b.op.op));
+  else if (S.sortBy === 'time-desc') rows.sort((a,b) => (b.op.t||0) - (a.op.t||0));
+  else if (S.sortBy === 'time-asc') rows.sort((a,b) => (a.op.t||0) - (b.op.t||0));
+  else if (S.sortBy === 'operators-desc') rows.sort((a,b) => (S.customOps[b.plant+'|'+b.op.op]||b.op.o) - (S.customOps[a.plant+'|'+a.op.op]||a.op.o));
+  else if (S.sortBy === 'bottleneck') {
+    rows.sort((a,b) => {
+      const ca = calcOp(a.op, a.plant), cb = calcOp(b.op, b.plant);
+      return (cb.isBottleneck ? 1 : 0) - (ca.isBottleneck ? 1 : 0);
+    });
+  }
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10"><div class="empty-state"><i class="fa-solid fa-inbox"></i>Sin operaciones para los filtros seleccionados</div></td></tr>`;
+    updateKPIs([]);
+    updateCharts([]);
+    return;
+  }
+
+  const rowData = [];
+
+  for (const { plant, op } of rows) {
+    const k = plant + '|' + op.op;
+    const calc = calcOp(op, plant);
+    rowData.push({ plant, op, calc, k });
+
+    const tr = document.createElement('tr');
+    tr.className = calc.isBottleneck ? 'bottleneck' : '';
+
+    const pc = PLANT_COLORS[plant];
+    const hasRealTime = op.tReal > 0;
+
+    let html = '';
+    if (S.selectedPlant === 'ALL') {
+      html += `<td><span class="tag ${pc.tag}" style="font-size:9px">${PLANT_LABELS[plant]}</span></td>`;
+    }
+    html += `<td style="max-width:220px"><div style="overflow:hidden;text-overflow:ellipsis;font-weight:600" title="${op.op}">${op.op}</div>
+      <div style="font-size:9px;color:var(--text3);margin-top:1px">${op.maq}</div></td>`;
+    html += `<td><span class="tag tag-zone">${op.z}</span></td>`;
+    html += `<td style="text-align:center">
+      <input type="number" class="inline-num" data-k="${k}" data-field="time" step="0.001" min="0.001" value="${fmtMin(S.customTimes[k])}">
+      ${!hasRealTime ? '<div style="font-size:9px;color:var(--text3);margin-top:1px">estimado</div>' : ''}
+    </td>`;
+    html += `<td style="text-align:center">
+      <input type="number" class="inline-num" data-k="${k}" data-field="ops" step="1" min="1" max="100" value="${S.customOps[k]}" style="width:48px">
+    </td>`;
+    html += `<td class="mono" style="text-align:right;color:var(--text2)">${fmt(calc.availHrs, 1)}</td>`;
+    html += `<td class="mono" style="text-align:right;color:var(--text2)">${fmt(calc.reqHrs, 1)}</td>`;
+    html += `<td class="mono" style="text-align:right;font-weight:700">${calc.throughput === Infinity ? '∞' : fmt(calc.throughput)}</td>`;
+    html += `<td class="mono" style="text-align:right;color:var(--purple)">${calc.kgPerManHr > 0 ? fmt(calc.kgPerManHr, 1) : '—'}</td>`;
+    html += `<td style="text-align:center">`;
+    if (calc.isBottleneck) {
+      html += `<span class="tag tag-bn">⚠ Cuello</span>`;
+    } else {
+      html += `<span class="tag tag-ok">✓ OK</span>`;
+    }
+    html += `</td>`;
+
+    tr.innerHTML = html;
+
+    // Attach listeners to inline inputs
+    tr.querySelectorAll('.inline-num').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const field = e.target.dataset.field;
+        const kk = e.target.dataset.k;
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && val > 0) {
+          if (field === 'time') S.customTimes[kk] = val;
+          else S.customOps[kk] = Math.round(val);
+          // Lightweight recompute
+          updateKPIs(getRowData());
+          updateCharts(getRowData());
+        }
+      });
+    });
+
+    S.renderedRows.push({ plant, op, k, tr });
+    tbody.appendChild(tr);
+  }
+
+  updateKPIs(rowData);
+  updateCharts(rowData);
+}
+
+function getRowData() {
+  const data = [];
+  for (const { plant, op, k } of S.renderedRows) {
+    const calc = calcOp(op, plant);
+    data.push({ plant, op, calc, k });
+  }
+  return data;
+}
+
+// ── CONSOLIDATED TABLE ──
+function renderConsolidatedTable() {
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+  S.renderedRows = [];
+
+  const activePlants = S.selectedPlant === 'ALL' ? [...S.activePlants] : [S.selectedPlant];
+
+  // Build operation map
+  const opMap = {}; // opName => { zone, plants: { plantName: opData } }
+  for (const plant of activePlants) {
+    const ops = PLANTS_DATA[plant] || [];
+    for (const op of ops) {
+      if (S.selectedZone !== 'TODAS' && op.z !== S.selectedZone) continue;
+      if (S.searchQuery && !op.op.toLowerCase().includes(S.searchQuery) && !op.z.toLowerCase().includes(S.searchQuery)) continue;
+      if (!opMap[op.op]) opMap[op.op] = { zone: op.z, plants: {} };
+      opMap[op.op].plants[plant] = op;
+    }
+  }
+
+  // Only show ops present in 2+ plants (for comparison)
+  const opsToShow = Object.entries(opMap)
+    .filter(([,v]) => Object.keys(v.plants).length >= (S.selectedPlant === 'ALL' ? 2 : 1))
+    .sort(([a],[b]) => a.localeCompare(b));
+
+  if (opsToShow.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="20"><div class="empty-state"><i class="fa-solid fa-inbox"></i>Sin operaciones compartidas entre plantas para los filtros actuales</div></td></tr>`;
+    return;
+  }
+
+  const rowData = [];
+
+  for (const [opName, opEntry] of opsToShow) {
+    const tr = document.createElement('tr');
+    let html = `<td style="font-weight:600;max-width:200px"><div style="overflow:hidden;text-overflow:ellipsis" title="${opName}">${opName}</div></td>`;
+    html += `<td><span class="tag tag-zone">${opEntry.zone}</span></td>`;
+
+    // Collect throughputs for best/worst coloring
+    const throughputs = [];
+    for (const plant of activePlants) {
+      const op = opEntry.plants[plant];
+      if (op) {
+        const c = calcOp(op, plant);
+        if (isFinite(c.throughput)) throughputs.push(c.throughput);
+      }
+    }
+    const maxTp = Math.max(...throughputs);
+    const minTp = Math.min(...throughputs);
+
+    for (const plant of activePlants) {
+      const op = opEntry.plants[plant];
+      html += `<td style="border-left:1px solid var(--border);text-align:center">`;
+      if (op) {
+        const c = calcOp(op, plant);
+        html += `<div class="mono cons-val">${fmtMin(S.customTimes[plant+'|'+op.op])}</div>`;
+      } else {
+        html += `<div class="cons-na">—</div>`;
+      }
+      html += `</td>`;
+      html += `<td style="text-align:center">`;
+      if (op) {
+        const ops = S.customOps[plant+'|'+op.op];
+        html += `<div class="mono" style="color:var(--text2)">${ops}</div>`;
+      } else html += `<div class="cons-na">—</div>`;
+      html += `</td>`;
+      html += `<td style="text-align:center">`;
+      if (op) {
+        const c = calcOp(op, plant);
+        const tp = isFinite(c.throughput) ? Math.round(c.throughput) : null;
+        let cls = '';
+        if (tp !== null) {
+          if (tp === maxTp && maxTp !== minTp) cls = 'cons-best';
+          else if (tp === minTp && maxTp !== minTp) cls = 'cons-worst';
+          else cls = 'cons-mid';
+        }
+        const bn = c.isBottleneck;
+        html += `<div class="mono cons-val ${cls}">${tp !== null ? fmt(tp) : '∞'}${bn ? ' <span style="color:var(--rose)">⚠</span>' : ''}</div>`;
+      } else html += `<div class="cons-na">—</div>`;
+      html += `</td>`;
+
+      if (op) rowData.push({ plant, op, calc: calcOp(op, plant), k: plant+'|'+op.op });
+    }
+    html += '';
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+  }
+
+  updateKPIs(rowData);
+  updateCharts(rowData);
+}
+
+function renderTable() {
+  renderTableHead();
+  if (S.viewMode === 'consolidated') {
+    renderConsolidatedTable();
+  } else {
+    renderNormalTable();
+  }
+}
+
+// ── KPI UPDATE ──
+function updateKPIs(rowData) {
+  const ops = rowData.length;
+  const totalOps = rowData.reduce((s, r) => s + (S.customOps[r.k] || r.op.o), 0);
+  const bottlenecks = rowData.filter(r => r.calc.isBottleneck).length;
+  const throughputs = rowData.map(r => r.calc.throughput).filter(t => isFinite(t));
+  const minTp = throughputs.length ? Math.min(...throughputs) : 0;
+  const cost = totalOps * S.shiftHours * S.laborCost;
+  const kgHs = rowData.map(r => r.calc.kgPerManHr).filter(x => x > 0);
+  const avgKgH = kgHs.length ? kgHs.reduce((a,b) => a+b, 0) / kgHs.length : 0;
+
+  document.getElementById('kpiOps').textContent = fmt(ops);
+  document.getElementById('kpiOpsPlant').textContent = S.selectedPlant === 'ALL' ? 'Multi-planta' : PLANT_LABELS[S.selectedPlant];
+  document.getElementById('kpiOperators').textContent = fmt(totalOps);
+  document.getElementById('kpiBN').textContent = fmt(bottlenecks);
+  document.getElementById('kpiBNLabel').textContent = bottlenecks === 0 ? 'Sin cuellos detectados' : 'Ops. con capacidad insuficiente';
+  document.getElementById('kpiThroughput').textContent = fmt(minTp);
+  document.getElementById('kpiCost').textContent = '$' + fmt(cost);
+  document.getElementById('kpiKgHombre').textContent = avgKgH > 0 ? fmt(avgKgH, 1) : '—';
+}
+
+// ── CHARTS ──
+let charts = {};
+
+function destroyChart(id) {
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+function updateCharts(rowData) {
+  updateThroughputChart(rowData);
+  updateKgHombreChart(rowData);
+  updateCrossPlantChart();
+  updateZoneChart(rowData);
+  updateScatterChart(rowData);
+}
+
+const CHART_DEFAULTS = {
+  font: { family: "'JetBrains Mono', monospace" },
+  color: '#9da3b4',
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: '#1e2435',
+      borderColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 1,
+      titleFont: { family: "'Outfit', sans-serif", size: 12, weight: '700' },
+      bodyFont: { family: "'JetBrains Mono', monospace", size: 11 },
+      padding: 12, cornerRadius: 8
+    }
+  }
+};
+
+function updateThroughputChart(rowData) {
+  const limited = rowData.slice(0, 30);
+  const labels = limited.map(r => r.op.op.length > 18 ? r.op.op.slice(0,16)+'...' : r.op.op);
+  const values = limited.map(r => isFinite(r.calc.throughput) ? Math.round(r.calc.throughput) : S.targetDemand * 2.5);
+  const colors = limited.map(r => r.calc.isBottleneck ? 'rgba(244,63,94,0.8)' : 'rgba(34,197,94,0.8)');
+
+  destroyChart('throughput');
+  const ctx = document.getElementById('chartThroughput').getContext('2d');
+  charts.throughput = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Throughput', data: values, backgroundColor: colors, borderRadius: 4, maxBarThickness: 28 },
+        { label: 'Demanda', data: limited.map(() => S.targetDemand), type: 'line',
+          borderColor: 'rgba(245,158,11,0.9)', borderWidth: 2, borderDash: [5,4],
+          pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: { ...CHART_DEFAULTS.plugins },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family:'Outfit', size: 9 }, color:'#6b7280', maxRotation: 50, minRotation: 40 } },
+        y: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { font: { ...CHART_DEFAULTS.font, size:10 }, color: '#6b7280' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function updateKgHombreChart(rowData) {
+  const withKg = rowData.filter(r => r.calc.kgPerManHr > 0).slice(0, 20);
+  withKg.sort((a,b) => b.calc.kgPerManHr - a.calc.kgPerManHr);
+  const labels = withKg.map(r => r.op.op.length > 18 ? r.op.op.slice(0,16)+'...' : r.op.op);
+  const values = withKg.map(r => Math.round(r.calc.kgPerManHr));
+
+  destroyChart('kghombre');
+  const ctx = document.getElementById('chartKgHombre').getContext('2d');
+  charts.kghombre = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Kg/H-Hombre',
+        data: values,
+        backgroundColor: 'rgba(168,85,247,0.7)',
+        borderColor: 'rgba(168,85,247,0.4)',
+        borderWidth: 1,
+        borderRadius: 4,
+        maxBarThickness: 28
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: { ...CHART_DEFAULTS.plugins },
+      scales: {
+        x: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { font: { ...CHART_DEFAULTS.font, size:10 }, color:'#6b7280' }, beginAtZero: true },
+        y: { grid: { display:false }, ticks: { font: { family:'Outfit', size:9 }, color:'#6b7280' } }
+      }
+    }
+  });
+}
+
+function updateCrossPlantChart() {
+  // Find operations present in multiple plants
+  const activePlants = S.selectedPlant === 'ALL' ? [...S.activePlants] : [S.selectedPlant];
+  if (activePlants.length < 2) { document.getElementById('crossPlantSection').style.display='none'; return; }
+  document.getElementById('crossPlantSection').style.display='';
+
+  const opMap = {};
+  for (const plant of activePlants) {
+    for (const op of (PLANTS_DATA[plant]||[])) {
+      if (!opMap[op.op]) opMap[op.op] = {};
+      if (!opMap[op.op][plant]) {
+        const k = plant+'|'+op.op;
+        opMap[op.op][plant] = S.customTimes[k] || op.t;
+      }
+    }
+  }
+
+  // Filter to ops in 2+ plants with time > 0
+  const shared = Object.entries(opMap)
+    .filter(([,ps]) => {
+      const vals = activePlants.map(p => ps[p]).filter(v => v && v > 0);
+      return vals.length >= 2;
+    })
+    .sort(([a],[b]) => a.localeCompare(b))
+    .slice(0, 20);
+
+  const labels = shared.map(([op]) => op.length > 22 ? op.slice(0,20)+'...' : op);
+  const datasets = activePlants.map(plant => ({
+    label: PLANT_LABELS[plant],
+    data: shared.map(([,ps]) => ps[plant] ? parseFloat(ps[plant].toFixed(5)) : null),
+    backgroundColor: PLANT_COLORS[plant].dim.replace('0.15','0.7'),
+    borderColor: PLANT_COLORS[plant].main,
+    borderWidth: 1,
+    borderRadius: 3,
+    maxBarThickness: 20,
+    spanGaps: false
+  }));
+
+  // Update legend
+  const legend = document.getElementById('crossLegend');
+  legend.innerHTML = activePlants.map(p =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${PLANT_COLORS[p].main}"></div>${PLANT_LABELS[p]}</div>`
+  ).join('');
+
+  destroyChart('crossPlant');
+  const ctx = document.getElementById('chartCrossPlant').getContext('2d');
+  charts.crossPlant = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } },
+      scales: {
+        x: { grid: { display:false }, ticks: { font: { family:'Outfit', size: 9 }, color:'#6b7280', maxRotation: 50 } },
+        y: { grid: { color:'rgba(255,255,255,0.04)' }, ticks: { font: { ...CHART_DEFAULTS.font, size:10 }, color:'#6b7280' }, beginAtZero: true,
+             title: { display: true, text: 'T. Estándar (min)', color: '#6b7280', font: { size: 10, family: 'Outfit' } } }
+      }
+    }
+  });
+}
+
+function updateZoneChart(rowData) {
+  const byZone = {};
+  for (const r of rowData) {
+    const z = r.op.z;
+    byZone[z] = (byZone[z] || 0) + (S.customOps[r.k] || r.op.o);
+  }
+  const labels = Object.keys(byZone);
+  const values = Object.values(byZone);
+  const palette = ['rgba(245,158,11,0.8)','rgba(14,165,233,0.8)','rgba(168,85,247,0.8)','rgba(34,197,94,0.8)','rgba(249,115,22,0.8)','rgba(244,63,94,0.8)','rgba(99,102,241,0.8)'];
+
+  destroyChart('byZone');
+  const ctx = document.getElementById('chartByZone').getContext('2d');
+  charts.byZone = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: palette.slice(0, labels.length), borderColor: '#141720', borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: { display: true, position: 'right', labels: { color: '#9da3b4', font: { family:'Outfit', size:10 }, boxWidth: 10, padding: 8 } }
+      },
+      cutout: '62%'
+    }
+  });
+}
+
+function updateScatterChart(rowData) {
+  const activePlants = [...new Set(rowData.map(r => r.plant))];
+  const datasets = activePlants.map(plant => ({
+    label: PLANT_LABELS[plant],
+    data: rowData
+      .filter(r => r.plant === plant && r.calc.actualTimeMin > 0 && isFinite(r.calc.throughput))
+      .map(r => ({ x: parseFloat(r.calc.actualTimeMin.toFixed(4)), y: S.customOps[r.k] || r.op.o, label: r.op.op })),
+    backgroundColor: PLANT_COLORS[plant].main + 'aa',
+    borderColor: PLANT_COLORS[plant].main,
+    pointRadius: 5,
+    pointHoverRadius: 7
+  }));
+
+  destroyChart('scatter');
+  const ctx = document.getElementById('chartScatter').getContext('2d');
+  charts.scatter = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: { duration: 300 },
+      plugins: {
+        ...CHART_DEFAULTS.plugins,
+        legend: { display: true, position: 'bottom', labels: { color:'#9da3b4', font:{family:'Outfit',size:10}, boxWidth:8, padding:8 } },
+        tooltip: {
+          ...CHART_DEFAULTS.plugins.tooltip,
+          callbacks: { label: ctx => `${ctx.raw.label || ''}: T=${ctx.raw.x}min, Ops=${ctx.raw.y}` }
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{font:{...CHART_DEFAULTS.font,size:10},color:'#6b7280'}, beginAtZero:true,
+             title:{display:true,text:'T. Estándar (min)',color:'#6b7280',font:{size:10,family:'Outfit'}} },
+        y: { grid:{color:'rgba(255,255,255,0.04)'}, ticks:{font:{...CHART_DEFAULTS.font,size:10},color:'#6b7280'}, beginAtZero:true,
+             title:{display:true,text:'Nº Operarios',color:'#6b7280',font:{size:10,family:'Outfit'}} }
+      }
+    }
+  });
+}
+
+// ── PLANT FILTER CARD visibility ──
+function updatePlantFilterCard() {
+  document.getElementById('plantFilterCard').style.display = S.selectedPlant === 'ALL' ? '' : 'none';
+}
+
+// ── EXPORT ──
+function exportCSV() {
+  const data = getRowData();
+  let csv = '\uFEFF';
+  if (S.selectedPlant === 'ALL') csv += 'Planta,';
+  csv += 'Operación,Zona,T.Estándar (min),Operarios,Cap.Disp (Hrs),Cap.Req (Hrs),Throughput,Kg/Hombre-Hr,Estado\n';
+  for (const { plant, op, calc, k } of data) {
+    const t = S.customTimes[k];
+    const o = S.customOps[k];
+    const row = [
+      ...(S.selectedPlant==='ALL' ? [`"${PLANT_LABELS[plant]}"`] : []),
+      `"${op.op}"`,`"${op.z}"`,t.toFixed(5),o,
+      calc.availHrs.toFixed(2),calc.reqHrs.toFixed(2),
+      isFinite(calc.throughput) ? Math.round(calc.throughput) : 'Inf',
+      calc.kgPerManHr > 0 ? calc.kgPerManHr.toFixed(1) : '',
+      calc.isBottleneck ? 'Cuello de Botella' : 'Suficiente'
+    ];
+    csv += row.join(',') + '\n';
+  }
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `capacidad_opav_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ── FULL EXPORT (all plants) ──
+function exportFullCSV() {
+  let csv = '\uFEFFPlanta,Operación,Zona,Máquina,T.Estándar (min),Operarios,T.Medida,Throughput Turno,Kg/Hombre-Hr\n';
+  for (const [plant, ops] of Object.entries(PLANTS_DATA)) {
+    for (const op of ops) {
+      const k = plant+'|'+op.op;
+      const c = calcOp(op, plant);
+      csv += [
+        `"${PLANT_LABELS[plant]}"`,`"${op.op}"`,`"${op.z}"`,`"${op.maq}"`,
+        (S.customTimes[k]||op.t).toFixed(5),
+        S.customOps[k]||op.o,
+        MEDIDA_LABELS[op.m]||'—',
+        isFinite(c.throughput)?Math.round(c.throughput):'Inf',
+        c.kgPerManHr>0?c.kgPerManHr.toFixed(1):''
+      ].join(',') + '\n';
+    }
+  }
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = `todas_plantas_opav_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ── RESET ──
+function resetAll() {
+  S.shiftHours=8; S.efficiency=85; S.timeFactor=100;
+  S.targetDemand=10000; S.laborCost=8500; S.avgWeight=1.8;
+  S.searchQuery=''; S.selectedZone='TODAS'; S.sortBy='default';
+  document.getElementById('shiftHoursInput').value=8;
+  document.getElementById('efficiencyInput').value=85;
+  document.getElementById('timeFactorInput').value=100;
+  document.getElementById('targetDemandInput').value=10000;
+  document.getElementById('laborCostInput').value=8500;
+  document.getElementById('searchInput').value='';
+  document.getElementById('sortSelect').value='default';
+  document.getElementById('shiftHoursVal').textContent='8 hrs';
+  document.getElementById('efficiencyVal').textContent='85%';
+  document.getElementById('timeFactorVal').textContent='100%';
+  document.querySelectorAll('.weight-btn').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.w)===1.8));
+  initCustoms();
+  renderAll();
+}
+
+function renderAll() {
+  renderZoneTabs();
+  renderTable();
+}
+
+// ── LISTENERS ──
+function setupListeners() {
+  // Plant tabs
+  document.querySelectorAll('.plant-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.plant-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      S.selectedPlant = btn.dataset.plant;
+      S.selectedZone = 'TODAS';
+      updatePlantFilterCard();
+      renderAll();
+    });
+  });
+
+  // Plant checkboxes (ALL mode)
+  document.querySelectorAll('.plant-chk').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const p = cb.dataset.p;
+      if (cb.checked) S.activePlants.add(p);
+      else S.activePlants.delete(p);
+      renderAll();
+    });
+  });
+
+  // Sliders
+  [['shiftHoursInput','shiftHoursVal','shiftHours',v=>v+' hrs'],
+   ['efficiencyInput','efficiencyVal','efficiency',v=>v+'%'],
+   ['timeFactorInput','timeFactorVal','timeFactor',v=>v+'%']
+  ].forEach(([id,vid,key,fmt]) => {
+    document.getElementById(id).addEventListener('input', e => {
+      const v = parseFloat(e.target.value);
+      S[key] = v;
+      document.getElementById(vid).textContent = fmt(v);
+      renderAll();
+    });
+  });
+
+  // Number inputs
+  document.getElementById('targetDemandInput').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v > 0) { S.targetDemand = v; renderAll(); }
+  });
+  document.getElementById('laborCostInput').addEventListener('input', e => {
+    const v = parseFloat(e.target.value);
+    if (!isNaN(v) && v >= 0) { S.laborCost = v; const rd = getRowData(); updateKPIs(rd); }
+  });
+
+  // Search
+  document.getElementById('searchInput').addEventListener('input', e => {
+    S.searchQuery = e.target.value.toLowerCase().trim();
+    renderTable();
+  });
+
+  // View toggle
+  document.getElementById('btnViewNormal').addEventListener('click', () => {
+    S.viewMode = 'normal';
+    document.getElementById('btnViewNormal').classList.add('active');
+    document.getElementById('btnViewConsolidated').classList.remove('active');
+    renderTable();
+  });
+  document.getElementById('btnViewConsolidated').addEventListener('click', () => {
+    S.viewMode = 'consolidated';
+    document.getElementById('btnViewConsolidated').classList.add('active');
+    document.getElementById('btnViewNormal').classList.remove('active');
+    renderTable();
+  });
+
+  // Sort
+  document.getElementById('sortSelect').addEventListener('change', e => {
+    S.sortBy = e.target.value; renderTable();
+  });
+
+  // Weight buttons
+  document.querySelectorAll('.weight-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.weight-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      S.avgWeight = parseFloat(btn.dataset.w);
+      renderAll();
+    });
+  });
+
+  // Export
+  document.getElementById('btnExport').addEventListener('click', exportCSV);
+  document.getElementById('btnExportFull').addEventListener('click', exportFullCSV);
+  document.getElementById('btnReset').addEventListener('click', resetAll);
+}
+
+// ── INIT ──
+document.addEventListener('DOMContentLoaded', () => {
+  initCustoms();
+  setupListeners();
+  updatePlantFilterCard();
+  renderAll();
+});
+</script>
+</body>
+</html>
