@@ -224,7 +224,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:10px 20px;d
 <body>
 
 <!-- ── UPLOAD OVERLAY ── -->
-<div class="overlay" id="overlay">
+<div class="overlay" id="overlay" onclick="if(event.target===this&&document.getElementById('ovMsg').textContent.includes('✓')){hideOverlay();}">
   <div style="text-align:center;margin-bottom:8px">
     <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:6px">
       <div style="width:32px;height:32px;background:var(--P);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff">B</div>
@@ -605,7 +605,7 @@ function loadExcelFile(file){
           initCT();
           setBar(100);
           showMsg('✓ Datos cargados correctamente','rgba(50,160,0,0.9)');
-          setTimeout(()=>hideOverlay(),800);
+          setTimeout(()=>hideOverlay(),600);
         } else {
           showMsg('⚠ No se encontraron hojas de planta en el Excel','rgba(192,57,43,0.85)');
           setBar(0);
@@ -622,8 +622,12 @@ function loadExcelFile(file){
 function showMsg(txt,clr){const el=document.getElementById('ovMsg');el.textContent=txt;el.style.background=clr||'rgba(0,0,0,0.4)';el.classList.add('show');}
 function setBar(p){document.getElementById('pbar').style.width=p+'%';}
 function hideOverlay(){
-  document.getElementById('overlay').classList.add('hide');
-  renderAll();
+  try{
+    document.getElementById('overlay').classList.add('hide');
+  }catch(e){}
+  setTimeout(()=>{
+    try{ renderAll(); }catch(e){ console.error('renderAll error:',e); }
+  },50);
 }
 
 // ═══ MODULE NAV ═══
@@ -1032,6 +1036,9 @@ function setupListeners(){
   document.getElementById('eRI').addEventListener('input',e=>{S.eR=parseInt(e.target.value);document.getElementById('eRV').textContent=S.eR;});
   document.getElementById('btnCalc').addEventListener('click',renderPlanResult);
 }
+
+// Close overlay on Escape key
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.getElementById('overlay');if(ov&&!ov.classList.contains('hide'))hideOverlay();}});
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
