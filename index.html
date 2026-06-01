@@ -224,35 +224,30 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:10px 20px;d
 <body>
 
 <!-- ── UPLOAD OVERLAY ── -->
-<div class="overlay" id="overlay">
-  <div style="text-align:center;margin-bottom:6px">
-    <div style="width:44px;height:44px;background:var(--Gb);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--D);margin:0 auto 8px">B</div>
-    <div style="font-size:19px;font-weight:800;color:#fff">OPAV 2026</div>
-    <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;text-transform:uppercase;letter-spacing:.7px">Plataforma de Capacidad Multi-Planta</div>
-  </div>
-
-  <!-- label = native file picker, works in all browsers without JS tricks -->
-  <label for="fi" style="display:block;width:460px;max-width:92vw;cursor:pointer">
-    <div style="border:2px dashed var(--P);border-radius:16px;padding:30px 28px;text-align:center;background:rgba(0,101,127,0.1);transition:all .2s" id="dropzone">
-      <i class="fa-solid fa-file-excel" style="font-size:40px;color:var(--Gb);margin-bottom:12px;display:block"></i>
-      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">Cargar Excel de Capacidad</div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6">
-        Arrastra aquí o haz clic para seleccionar<br>
-        <strong style="color:#fff">Bases_Costeo_y_Capacidad_OPAV_2026.xlsx</strong>
+<div id="xlModal" style="display:none;position:fixed;inset:0;background:rgba(0,30,35,0.72);backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:28px 32px;width:460px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--D)">Actualizar datos desde Excel</div>
+        <div style="font-size:10px;color:var(--tx3);margin-top:2px">Bases_Costeo_y_Capacidad_OPAV_2026.xlsx</div>
       </div>
+      <button onclick="closeModal()" style="background:var(--bg4);border:1px solid var(--bdr);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13px;color:var(--tx2);line-height:1">✕</button>
     </div>
-  </label>
-
-  <!-- Visible file input as direct fallback -->
-  <div style="margin-top:8px;text-align:center">
-    <input type="file" id="fi" accept=".xlsx,.xlsm,.xls"
-      style="color:#fff;font-size:11px;font-family:Outfit,sans-serif">
+    <label for="fi" style="display:block;cursor:pointer;margin-bottom:10px">
+      <div id="dropzone" style="border:2px dashed var(--P);border-radius:10px;padding:22px;text-align:center;background:var(--Pd);transition:border-color .2s">
+        <i class="fa-solid fa-file-excel" style="font-size:32px;color:var(--G);margin-bottom:8px;display:block"></i>
+        <div style="font-weight:700;color:var(--D);font-size:13px">Arrastra o haz clic</div>
+        <div style="font-size:10px;color:var(--tx2);margin-top:3px">.xlsx / .xlsm / .xls</div>
+      </div>
+    </label>
+    <input type="file" id="fi" accept=".xlsx,.xlsm,.xls" style="display:block;width:100%;padding:6px 8px;border:1px solid var(--bdr);border-radius:6px;font-size:11px;color:var(--tx);font-family:Outfit,sans-serif;cursor:pointer;background:var(--bg3)">
+    <div id="prog" style="display:none;background:var(--bg4);border-radius:99px;height:4px;overflow:hidden;margin-top:12px">
+      <div id="pbar" style="height:100%;background:var(--P);border-radius:99px;transition:width .3s;width:0%"></div>
+    </div>
+    <div id="ovMsg" style="min-height:16px;margin-top:8px;font-size:11px;font-weight:600;text-align:center;padding:3px 10px;border-radius:6px;color:var(--D)"></div>
+    <div id="xlsxStatus" style="font-size:9px;color:var(--tx3);text-align:center;margin-top:3px;min-height:13px"></div>
+    <div style="margin-top:14px;font-size:10px;color:var(--tx3);text-align:center">Los datos actuales se reemplazan sin recargar la página</div>
   </div>
-
-  <div class="prog" id="prog" style="width:460px;max-width:92vw"><div class="prog-bar" id="pbar" style="width:0%"></div></div>
-  <div id="ovMsg" class="ov-msg"></div>
-  <div id="xlsxStatus" style="font-size:10px;min-height:16px;color:rgba(255,255,255,0.4)"></div>
-  <span class="skip-btn" id="skipBtn">Continuar con datos de ejemplo incorporados →</span>
 </div>
 <header>
   <div class="logo">
@@ -554,6 +549,24 @@ function calc(op,plant,ef){
   return{t,o,avH,rqH,tp,isBN,kgH};
 }
 
+
+function openModal(){
+  const m=document.getElementById('xlModal');
+  m.style.display='flex';
+  document.getElementById('prog').style.display='none';
+  document.getElementById('pbar').style.width='0%';
+  const msg=document.getElementById('ovMsg');
+  msg.textContent='';msg.style.background='';
+  // Check XLSX status
+  setTimeout(()=>{
+    const el=document.getElementById('xlsxStatus');
+    if(el) el.textContent=typeof XLSX!=='undefined'?'✓ Librería Excel lista':'Cargando librería...';
+  },500);
+}
+function closeModal(){
+  document.getElementById('xlModal').style.display='none';
+}
+
 // ═══ EXCEL LOADER ═══
 function parseExcel(ab){
   const wb=XLSX.read(ab,{type:'binary',cellFormula:false,cellNF:false,cellStyles:false});
@@ -592,6 +605,24 @@ function parseExcel(ab){
     loaded++;
   }
   return loaded>0?newData:null;
+}
+
+
+function openModal(){
+  const m=document.getElementById('xlModal');
+  m.style.display='flex';
+  document.getElementById('prog').style.display='none';
+  document.getElementById('pbar').style.width='0%';
+  const msg=document.getElementById('ovMsg');
+  msg.textContent='';msg.style.background='';
+  // Check XLSX status
+  setTimeout(()=>{
+    const el=document.getElementById('xlsxStatus');
+    if(el) el.textContent=typeof XLSX!=='undefined'?'✓ Librería Excel lista':'Cargando librería...';
+  },500);
+}
+function closeModal(){
+  document.getElementById('xlModal').style.display='none';
 }
 
 // ═══ EXCEL LOADER ═══
@@ -700,16 +731,13 @@ function loadExcelFile(file){
   });
 }
 
-function hideOverlay(){
-  try{document.getElementById('overlay').classList.add('hide');}catch(e){}
-  setTimeout(()=>{try{renderAll();}catch(e){console.error('renderAll:',e);}},80);
-}
+function hideOverlay(){closeModal();setTimeout(()=>{try{renderAll();}catch(e){console.error('renderAll:',e);}},80);}
 
 
 function setBar(p){document.getElementById('pbar').style.width=p+'%';}
 function hideOverlay(){
   try{
-    document.getElementById('overlay').classList.add('hide');
+    closeModal();
   }catch(e){}
   setTimeout(()=>{
     try{ renderAll(); }catch(e){ console.error('renderAll error:',e); }
@@ -1058,11 +1086,11 @@ function setupListeners(){
   // Overlay
   const fi=document.getElementById('fileIn');
   fi.addEventListener('change',e=>{if(e.target.files[0]) loadExcelFile(e.target.files[0]);});
-  document.getElementById('skipBtn').onclick=()=>hideOverlay();
+  // skip button removed - modal has X button
   document.getElementById('fi').onchange=e=>{if(e.target.files&&e.target.files[0])loadExcelFile(e.target.files[0]);};
   // Drag and drop on overlay
-  document.getElementById('overlay').addEventListener('dragover',e=>{e.preventDefault();});
-  document.getElementById('overlay').addEventListener('drop',e=>{
+  document.getElementById('xlModal').addEventListener('dragover',e=>{e.preventDefault();});
+  document.getElementById('xlModal').addEventListener('drop',e=>{
     e.preventDefault();
     const f=e.dataTransfer.files[0];
     if(f&&(f.name.endsWith('.xlsx')||f.name.endsWith('.xls')||f.name.endsWith('.xlsm'))){
@@ -1070,7 +1098,7 @@ function setupListeners(){
     }
   });
   document.getElementById('btnXL').onclick=()=>{
-    document.getElementById('overlay').classList.remove('hide');
+    openModal();
     document.getElementById('prog').style.display='none';
     document.getElementById('ovMsg').classList.remove('show');
     setBar(0);
@@ -1128,7 +1156,7 @@ function setupListeners(){
 }
 
 // Close overlay on Escape key
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.getElementById('overlay');if(ov&&!ov.classList.contains('hide'))hideOverlay();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();}});
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
@@ -1137,6 +1165,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initCT();setupListeners();initRefSel();
   document.getElementById('pfc').style.display='';
   renderCunas();
+  renderAll();
 });
 </script>
 </body>
