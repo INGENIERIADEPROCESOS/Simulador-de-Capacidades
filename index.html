@@ -224,28 +224,36 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);padding:10px 20px;d
 <body>
 
 <!-- ── UPLOAD OVERLAY ── -->
-<div class="overlay" id="overlay" onclick="if(event.target===this&&document.getElementById('ovMsg').textContent.includes('✓')){hideOverlay();}">
-  <div style="text-align:center;margin-bottom:8px">
-    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:6px">
-      <div style="width:32px;height:32px;background:var(--P);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff">B</div>
-      <span style="font-size:18px;font-weight:800;color:var(--Be)">OPAV 2026</span>
-    </div>
-    <div style="font-size:11px;color:var(--tx3)">Plataforma de Capacidad Multi-Planta</div>
+<div class="overlay" id="overlay">
+  <div style="text-align:center;margin-bottom:6px">
+    <div style="width:44px;height:44px;background:var(--Gb);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:var(--D);margin:0 auto 8px">B</div>
+    <div style="font-size:19px;font-weight:800;color:#fff">OPAV 2026</div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px;text-transform:uppercase;letter-spacing:.7px">Plataforma de Capacidad Multi-Planta</div>
   </div>
-  <div class="dropzone" id="dropzone" onclick="document.getElementById('fi').click()">
-    <i class="fa-solid fa-file-excel" style="color:var(--G)"></i>
-    <div class="dz-title">Cargar Excel de Capacidad</div>
-    <div class="dz-sub">Arrastra aquí el archivo<br><strong style="color:var(--Be)">Bases_Costeo_y_Capacidad_OPAV_2026.xlsx</strong><br>o haz clic para seleccionarlo</div>
-    <div class="dz-or">— o —</div>
-    <button class="btn btn-p" style="margin:0 auto;display:inline-flex;pointer-events:none"><i class="fa-solid fa-folder-open"></i> Seleccionar archivo</button>
-  </div>
-  <div class="progress" id="progress"><div class="progress-bar" id="pbar" style="width:0%"></div></div>
-  <div id="ovMsg" class="ov-msg"></div>
-  <span class="skip-btn" id="skipBtn">Usar datos de ejemplo incorporados →</span>
-  <input type="file" id="fileIn" accept=".xlsx,.xlsm,.xls" style="display:none">
-</div>
 
-<!-- ── HEADER ── -->
+  <!-- label = native file picker, works in all browsers without JS tricks -->
+  <label for="fi" style="display:block;width:460px;max-width:92vw;cursor:pointer">
+    <div style="border:2px dashed var(--P);border-radius:16px;padding:30px 28px;text-align:center;background:rgba(0,101,127,0.1);transition:all .2s" id="dropzone">
+      <i class="fa-solid fa-file-excel" style="font-size:40px;color:var(--Gb);margin-bottom:12px;display:block"></i>
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">Cargar Excel de Capacidad</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.6);line-height:1.6">
+        Arrastra aquí o haz clic para seleccionar<br>
+        <strong style="color:#fff">Bases_Costeo_y_Capacidad_OPAV_2026.xlsx</strong>
+      </div>
+    </div>
+  </label>
+
+  <!-- Visible file input as direct fallback -->
+  <div style="margin-top:8px;text-align:center">
+    <input type="file" id="fi" accept=".xlsx,.xlsm,.xls"
+      style="color:#fff;font-size:11px;font-family:Outfit,sans-serif">
+  </div>
+
+  <div class="prog" id="prog" style="width:460px;max-width:92vw"><div class="prog-bar" id="pbar" style="width:0%"></div></div>
+  <div id="ovMsg" class="ov-msg"></div>
+  <div id="xlsxStatus" style="font-size:10px;min-height:16px;color:rgba(255,255,255,0.4)"></div>
+  <span class="skip-btn" id="skipBtn">Continuar con datos de ejemplo incorporados →</span>
+</div>
 <header>
   <div class="logo">
     <div class="logo-ico">B</div>
@@ -973,12 +981,16 @@ function setupListeners(){
   const fi=document.getElementById('fileIn');
   fi.addEventListener('change',e=>{if(e.target.files[0]) loadExcelFile(e.target.files[0]);});
   document.getElementById('skipBtn').onclick=()=>hideOverlay();
-  const dz=document.getElementById('dropzone');
-  if(dz){
-    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
-    dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
-    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)loadExcelFile(f);});
-  }
+  document.getElementById('fi').onchange=e=>{if(e.target.files&&e.target.files[0])loadExcelFile(e.target.files[0]);};
+  // Drag and drop on overlay
+  document.getElementById('overlay').addEventListener('dragover',e=>{e.preventDefault();});
+  document.getElementById('overlay').addEventListener('drop',e=>{
+    e.preventDefault();
+    const f=e.dataTransfer.files[0];
+    if(f&&(f.name.endsWith('.xlsx')||f.name.endsWith('.xls')||f.name.endsWith('.xlsm'))){
+      loadExcelFile(f);
+    }
+  });
   document.getElementById('btnXL').onclick=()=>{
     document.getElementById('overlay').classList.remove('hide');
     document.getElementById('prog').style.display='none';
@@ -1042,6 +1054,19 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.g
 
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
+  // Check XLSX library loaded
+  setTimeout(()=>{
+    const el=document.getElementById('xlsxStatus');
+    if(el){
+      if(typeof XLSX!=='undefined'){
+        el.textContent='✓ Librería Excel lista (v'+XLSX.version+')';
+        el.style.color='rgba(170,207,0,0.7)';
+      } else {
+        el.textContent='⚠ Librería Excel no disponible — verifica conexión a internet';
+        el.style.color='rgba(255,100,80,0.9)';
+      }
+    }
+  },1500);
   initCT();setupListeners();initRefSel();
   document.getElementById('pfc').style.display='';
   renderCunas();
