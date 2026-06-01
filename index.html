@@ -6,7 +6,7 @@
 <title>OPAV 2026 — Capacidad Multi-Planta</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- XLSX loaded dynamically with fallback CDNs -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
 :root{
@@ -594,40 +594,118 @@ function parseExcel(ab){
   return loaded>0?newData:null;
 }
 
-function loadExcelFile(file){
-  document.getElementById('prog').style.display='block';
-  showMsg('Leyendo archivo...');
-  setBar(20);
-  const reader=new FileReader();
-  reader.onload=e=>{
-    setBar(60);
-    showMsg('Procesando hojas...');
-    setTimeout(()=>{
-      try{
-        const result=parseExcel(e.target.result);
-        setBar(90);
-        if(result){
-          PD=result;
-          // Reset customs
-          S.ct={};S.co={};
-          initCT();
-          setBar(100);
-          showMsg('✓ Datos cargados correctamente','rgba(50,160,0,0.9)');
-          setTimeout(()=>hideOverlay(),600);
-        } else {
-          showMsg('⚠ No se encontraron hojas de planta en el Excel','rgba(192,57,43,0.85)');
-          setBar(0);
-        }
-      }catch(err){
-        showMsg('Error: '+err.message,'rgba(192,57,43,0.85)');
-        setBar(0);
-        console.error(err);
-      }
-    },100);
-  };
-  reader.readAsBinaryString(file);
+// ═══ EXCEL LOADER ═══
+const XLSX_CDNS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+];
+
+function ensureXLSX(cb){
+  if(typeof XLSX!=='undefined'){cb(null);return;}
+  showMsg('Cargando librería Excel...');
+  let i=0;
+  function tryNext(){
+    if(i>=XLSX_CDNS.length){cb(new Error('No se pudo cargar XLSX desde ningún CDN'));return;}
+    const s=document.createElement('script');
+    s.src=XLSX_CDNS[i++];
+    s.onload=()=>{
+      const el=document.getElementById('xlsxStatus');
+      if(el){el.textContent='✓ Librería Excel lista (v'+XLSX.version+')';el.style.color='rgba(170,207,0,0.8)';}
+      cb(null);
+    };
+    s.onerror=()=>{console.warn('CDN failed:',s.src);tryNext();};
+    document.head.appendChild(s);
+  }
+  tryNext();
 }
-function showMsg(txt,clr){const el=document.getElementById('ovMsg');el.textContent=txt;el.style.background=clr||'rgba(0,0,0,0.4)';el.classList.add('show');}
+
+function showMsg(txt,clr){
+  const el=document.getElementById('ovMsg');
+  if(!el)return;
+  el.textContent=txt;
+  el.style.background=clr||'rgba(0,0,0,0.4)';
+  el.classList.add('show');
+}
+function setPb(p){const el=document.getElementById('pbar');if(el)el.style.width=p+'%';}
+
+function loadExcelFile(file){
+  if(!file){showMsg('⚠ No se recibió el archivo','rgba(192,57,43,0.85)');return;}
+  document.getElementById('prog').style.display='block';
+  showMsg('Preparando...');setPb(10);
+  ensureXLSX(err=>{
+    if(err){showMsg('⚠ '+err.message+' — usa "datos de ejemplo"','rgba(192,57,43,0.85)');setPb(0);return;}
+    showMsg('Leyendo: '+file.name);setPb(25);
+    const reader=new FileReader();
+    reader.onerror=()=>{showMsg('⚠ Error leyendo el archivo','rgba(192,57,43,0.85)');setPb(0);};
+    reader.onload=e=>{
+      setPb(55);showMsg('Analizando hojas Excel...');
+      setTimeout(()=>{
+        try{
+          const wb=XLSX.read(e.target.result,{type:'binary',cellFormula:false,cellNF:false,cellStyles:false});
+          console.log('Hojas:', wb.SheetNames);
+          setPb(75);
+          const smap={
+            'TIEMPOS Y RENDIMIENTOS (PEI)':{p:'PEREIRA',tc:46,tm:true},
+            'TIEMPOS Y RENDIMIENTOS (BUC)':{p:'BUCARAMANGA',tc:46,tm:true},
+            'TIEMPOS Y RENDIMIENTOS (CALDAS)':{p:'CALDAS',tc:43,tm:false},
+            'TIEMPOS Y RENDIMIENTOS (COPA)':{p:'COPACABANA',tc:43,tm:false}
+          };
+          const nd={};let loaded=0;
+          for(const[sn,cfg]of Object.entries(smap)){
+            const found=wb.SheetNames.find(n=>n.trim()===sn.trim())||
+                        wb.SheetNames.find(n=>n.trim().toUpperCase()===sn.toUpperCase());
+            if(!found){console.warn('No encontrada:',sn);continue;}
+            const rows=XLSX.utils.sheet_to_json(wb.Sheets[found],{header:1,defval:null,raw:true});
+            const bkt={};
+            for(let i=2;i<rows.length;i++){
+              const r=rows[i];if(!r||!r.length)continue;
+              const g=c=>(r.length>c?r[c]:null);
+              const oR=g(1);if(oR==null)continue;
+              const op=String(oR).trim();if(!op||op.startsWith('='))continue;
+              const z=g(2)!=null?String(g(2)).trim()||'GENERAL':'GENERAL';
+              const maq=g(7)!=null?String(g(7)).trim().slice(0,22):'MANUAL';
+              let ops=1;try{const v=g(8);if(v!=null&&!isNaN(v))ops=Math.max(1,Math.round(parseFloat(v)));}catch{}
+              let tm=0;if(cfg.tm){try{const v=g(11);if(v){const s=String(v).toUpperCase();if(s.includes('PESO'))tm=1;else if(s.includes('UNIDAD'))tm=2;}}catch{}}
+              let tS=0;try{const v=g(cfg.tc);if(v!=null&&!isNaN(v)&&parseFloat(v)>0)tS=parseFloat(v);}catch{}
+              const k=op+'|'+z;
+              if(!bkt[k])bkt[k]={op,z,maq,ol:[ops],tl:[],tm};else bkt[k].ol.push(ops);
+              if(tS>0)bkt[k].tl.push(tS);
+            }
+            const pOps=Object.values(bkt).map(v=>{
+              const at=v.tl.length?v.tl.reduce((a,b)=>a+b,0)/v.tl.length:0;
+              return{op:v.op,z:v.z,t:at>0?parseFloat((at/60).toFixed(5)):0.05,
+                     tR:at>0?parseFloat((at/60).toFixed(5)):0,
+                     o:Math.max(1,...v.ol),m:v.tm||0,maq:v.maq||'MANUAL'};
+            }).sort((a,b)=>a.z.localeCompare(b.z)||a.op.localeCompare(b.op));
+            if(pOps.length>0){nd[cfg.p]=pOps;loaded++;console.log('✓',cfg.p,pOps.length,'ops');}
+          }
+          setPb(95);
+          if(loaded>0){
+            PD=nd;initCT();setPb(100);
+            showMsg('✓ '+loaded+' plantas · '+Object.values(nd).flat().length+' operaciones','rgba(50,160,0,0.9)');
+            setTimeout(()=>hideOverlay(),900);
+          } else {
+            const avail=wb.SheetNames.slice(0,4).join(', ');
+            showMsg('⚠ Hojas no encontradas. Disponibles: '+avail,'rgba(192,57,43,0.85)');
+            setPb(0);
+          }
+        }catch(err){
+          showMsg('⚠ Error: '+err.message,'rgba(192,57,43,0.85)');
+          setPb(0);console.error('Excel error:',err);
+        }
+      },150);
+    };
+    reader.readAsBinaryString(file);
+  });
+}
+
+function hideOverlay(){
+  try{document.getElementById('overlay').classList.add('hide');}catch(e){}
+  setTimeout(()=>{try{renderAll();}catch(e){console.error('renderAll:',e);}},80);
+}
+
+
 function setBar(p){document.getElementById('pbar').style.width=p+'%';}
 function hideOverlay(){
   try{
@@ -1055,18 +1133,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){const ov=document.g
 // ═══ INIT ═══
 document.addEventListener('DOMContentLoaded',()=>{
   // Check XLSX library loaded
-  setTimeout(()=>{
-    const el=document.getElementById('xlsxStatus');
-    if(el){
-      if(typeof XLSX!=='undefined'){
-        el.textContent='✓ Librería Excel lista (v'+XLSX.version+')';
-        el.style.color='rgba(170,207,0,0.7)';
-      } else {
-        el.textContent='⚠ Librería Excel no disponible — verifica conexión a internet';
-        el.style.color='rgba(255,100,80,0.9)';
-      }
-    }
-  },1500);
+  // XLSX status checked when file is loaded
   initCT();setupListeners();initRefSel();
   document.getElementById('pfc').style.display='';
   renderCunas();
